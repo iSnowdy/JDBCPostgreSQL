@@ -1,6 +1,6 @@
 package NorthPoleDatabase.Build;
 
-public interface clientOps {
+public interface ClientOps {
     void withdrawMoney();
     void depositMoney();
 }

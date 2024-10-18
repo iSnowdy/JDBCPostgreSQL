@@ -1,6 +1,6 @@
 package NorthPoleDatabase.Build;
 
-public interface empOps {
+public interface EmpOps {
     void refillBank ();
     void addClient();
     void deleteClient();

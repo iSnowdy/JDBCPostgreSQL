@@ -1,6 +1,6 @@
 package NorthPoleDatabase.Build;
 
-public class Client extends Person implements clientOps {
+public class Client extends Person implements ClientOps {
     // ENUM for rol
     private final Rol rol;
 

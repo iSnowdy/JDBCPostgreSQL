@@ -1,6 +1,6 @@
 package NorthPoleDatabase.Build;
 
-public class Employee extends Person implements empOps {
+public class Employee extends Person implements EmpOps {
     private final Rol rol;
 
     public Employee(String DNI, String name, String pin) {
