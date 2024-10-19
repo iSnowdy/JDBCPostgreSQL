@@ -93,13 +93,17 @@ public class JDBCPostgreSQL {
     }
 
     // Queries
-    public static ResultSet getClient(String DNI, String pin) {
+
+    // SELECT
+
+    // Search for a client. Only need DNI because the name and PIn
+    // in reality can be repeated; which is not the case for DNI (PK)
+    public static ResultSet getClient(String DNI) {
         try {
             String preparedStatementSQL =
-                    "SELECT * FROM clientes WHERE DNI = ? AND PIN = ?";
+                    "SELECT * FROM clientes WHERE DNI = ?";
             PreparedStatement preparedStatement = connection.prepareStatement(preparedStatementSQL);
             preparedStatement.setString(1, DNI);
-            preparedStatement.setString(2, pin);
 
             ResultSet resultSet = preparedStatement.executeQuery(preparedStatementSQL);
 
@@ -161,6 +165,101 @@ public class JDBCPostgreSQL {
             sqlException.printStackTrace();
             return null;
         }
+    }
+
+    // Method to check if the ATM that the employee wants to UPDATE exists or not
+    public static boolean validateATMUPDATE(String address, String city) {
+        try {
+            String preparedStatementSQL =
+                    "SELECT * FROM cajeros WHERE direccion = ? AND poblacion = ?";
+            PreparedStatement preparedStatement = connection.prepareStatement(preparedStatementSQL);
+            preparedStatement.setString(1, address);
+            preparedStatement.setString(2, city);
+
+            ResultSet resultSet = preparedStatement.executeQuery(preparedStatementSQL);
+            return resultSet.first();
+        } catch (SQLException sqlException) {
+            System.err.println("Error validating ATM UPDATE from PostgreSQL");
+            sqlException.printStackTrace();
+            return false;
+        }
+    }
+
+    // UPDATE
+    public static boolean updateATM(int[] bills, String address, String city) throws SQLException {
+        try {
+            // For updates, we will enclose them in a Transaction to ensure
+            // the DB ACID properties
+            connection.setAutoCommit(false);
+
+            String preparedStatementSQL =
+                    "UPDATE cajeros " +
+                    "SET billetes5 = billetes5 + ?, " +
+                    "billetes10 = billetes10 + ?, " +
+                    "billetes20 = billetes20 + ?, " +
+                    "billetes50 = billetes50 + ? " +
+                    "WHERE direccion = ? AND poblacion = ?";
+            PreparedStatement preparedStatement = connection.prepareStatement(preparedStatementSQL);
+
+            // Updates all the ? values at once
+            for (int i = 0; i < bills.length; i++) {
+                preparedStatement.setInt(i + 1, bills[i]);
+            }
+            preparedStatement.setString(5, address);
+            preparedStatement.setString(6, city);
+            // PreparedStatement.executeUpdate() is used for any queries that somehow change
+            // the DB (INSERT, UPDATE, DELETE); DML. It returns how many rows or tuples were
+            // affected by that statement. So as long it is > 0, we know the query was
+            // correctly executed
+            int tuplesAffected =  preparedStatement.executeUpdate();
+            if (tuplesAffected > 0) {
+                connection.commit();
+                System.out.println("Successfully updated ATM UPDATE");
+                return true;
+            } else {
+                connection.rollback();
+                System.out.println("Failed to update ATM UPDATE");
+                return false;
+            }
+        } catch (SQLException sqlException) {
+            System.err.println("Error while trying to update the ATM");
+            sqlException.printStackTrace();
+            connection.rollback(); // If something went wrong...
+            return false;
+        }
+    }
+
+    public static void insertUser(String DNI, String name, String pin, Rol rol) {
+        try {
+            String preparedStatementSQL = "";
+            switch (rol) {
+                case C -> preparedStatementSQL =
+                        "INSERT INTO clientes " +
+                        "(DNI, nombre, pin, rol) VALUES (?, ?, ?, ?)";
+                case E -> preparedStatementSQL =
+                        "INSERT INTO empleados " +
+                        "(DNI, nombre, pin, rol) VALUES (?, ?, ?, ?)";
+            }
+
+            PreparedStatement preparedStatement = connection.prepareStatement(preparedStatementSQL);
+            preparedStatement.setString(1, DNI);
+            preparedStatement.setString(2, name);
+            preparedStatement.setString(3, pin);
+            preparedStatement.setString(4, rol.toString());
+
+            preparedStatement.executeUpdate(preparedStatementSQL);
+            System.out.println("----------------------------------------");
+            System.out.println("Client addition successful. Recap:");
+            System.out.println("DNI: " + DNI);
+            System.out.println("Name: " + name);
+            System.out.println("PIN: " + pin);
+            System.out.println("----------------------------------------");
+
+        } catch (SQLException sqlException) {
+            System.err.println("Error inserting user from PostgreSQL");
+            sqlException.printStackTrace();
+        }
+
     }
 
 

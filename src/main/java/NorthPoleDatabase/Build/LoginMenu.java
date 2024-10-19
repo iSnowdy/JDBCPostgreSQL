@@ -32,13 +32,14 @@ public class LoginMenu {
             try {
                 if (resultSet.next()) {
                     String type = resultSet.getString("type");
+                    String name = resultSet.getString("name");
 
                     if (type.equals("cliente")) {
                         // Client logic
-                        OpMenu opMenu = new OpMenu(DNI, pin, Rol.C);
+                        OpMenu opMenu = new OpMenu(DNI, pin, name, Rol.C);
                     } else if (type.equals("empleado")) {
                         // Employee logic
-                        OpMenu opMenu = new OpMenu(DNI, pin, Rol.E);
+                        OpMenu opMenu = new OpMenu(DNI, pin, name, Rol.E);
                     }
                     System.out.println("Login successful! Welcome");
                     cycle = false;
