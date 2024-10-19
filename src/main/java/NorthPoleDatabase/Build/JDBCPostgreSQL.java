@@ -1,8 +1,6 @@
 package NorthPoleDatabase.Build;
 
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.SQLException;
+import java.sql.*;
 
 public class JDBCPostgreSQL {
     // Strings to build the valid URL
@@ -17,7 +15,7 @@ public class JDBCPostgreSQL {
     private final String PASSWORD;
     // Object that will represent the connection to the DB
     // once the Driver is called (.DriverManager)
-    private Connection connection;
+    private static Connection connection;
 
     // localhost constructor
     public JDBCPostgreSQL(String USERNAME, String PASSWORD, String DBNAME) {
@@ -94,7 +92,78 @@ public class JDBCPostgreSQL {
         }
     }
 
-    // DB management methods?
+    // Queries
+    public static ResultSet getClient(String DNI, String pin) {
+        try {
+            String preparedStatementSQL =
+                    "SELECT * FROM clientes WHERE DNI = ? AND PIN = ?";
+            PreparedStatement preparedStatement = connection.prepareStatement(preparedStatementSQL);
+            preparedStatement.setString(1, DNI);
+            preparedStatement.setString(2, pin);
+
+            ResultSet resultSet = preparedStatement.executeQuery(preparedStatementSQL);
+
+            // If we don't have a single register, then the client does not exist
+            if (!resultSet.first()) return null;
+            // Otherwise, return the ResultSet of the query
+            return resultSet;
+        } catch (SQLException sqlException) {
+            System.err.println("Error getting client from PostgreSQL");
+            sqlException.printStackTrace();
+            return null;
+        }
+    }
+
+    public static ResultSet getEmployee(String DNI, String pin) {
+        try {
+            String preparedStatementSQL =
+                    "SELECT * FROM empleados WHERE DNI = ? AND PIN = ?";
+            PreparedStatement preparedStatement = connection.prepareStatement(preparedStatementSQL);
+            preparedStatement.setString(1, DNI);
+            preparedStatement.setString(2, pin);
+
+            ResultSet resultSet = preparedStatement.executeQuery(preparedStatementSQL);
+
+            // If we don't have a single register, then the client does not exist
+            if (!resultSet.first()) return null;
+            // Otherwise, return the ResultSet of the query
+            return resultSet;
+        } catch (SQLException sqlException) {
+            System.err.println("Error getting employee from PostgreSQL");
+            sqlException.printStackTrace();
+            return null;
+        }
+    }
+
+    public static ResultSet getPerson(String DNI, String pin) {
+        // UNION can only return one row even if some rows from two queries return something
+        // UNION ALL, on the other hand, can result duplicates. Which we want since we are
+        // querying two tables where an employee could also be a client
+        try {
+            String preparedStatementSQL =
+                    "SELECT 'cliente' AS type, DNI FROM empleados WHERE DNI = ? AND PIN = ? " +
+                    "UNION ALL + " +
+                    "SELECT 'empleado' AS type, DNI FROM empleados WHERE DNI = ? AND PIN = ?";
+            PreparedStatement preparedStatement = connection.prepareStatement(preparedStatementSQL);
+            preparedStatement.setString(1, DNI);
+            preparedStatement.setString(2, pin);
+            preparedStatement.setString(3, DNI);
+            preparedStatement.setString(4, pin);
+
+            ResultSet resultSet = preparedStatement.executeQuery(preparedStatementSQL);
+
+            // If we don't have a single register, then the client does not exist
+            if (!resultSet.first()) return null;
+            // Otherwise, return the ResultSet of the query
+            return resultSet;
+        } catch (SQLException sqlException) {
+            System.err.println("Error getting client from PostgreSQL");
+            sqlException.printStackTrace();
+            return null;
+        }
+    }
+
+
 
 
     // Getters and Setters

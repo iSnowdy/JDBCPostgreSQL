@@ -1,9 +1,12 @@
 package NorthPoleDatabase.Build;
 
 public abstract class Person {
-    private String DNI;
-    private String name;
+    // PK and NOT NULL attributes are defined as final
+    private final String DNI;
+    private final String name;
     private String pin;
+    // 'Rol' is not defined here but inside the subclasses. Also by the
+    // DDL it is automatically set to C / E (default values)
 
     public Person(String DNI, String name, String pin) {
         this.DNI = DNI;
@@ -27,7 +30,6 @@ public abstract class Person {
     public String getPin() {
         return pin;
     }
-
     public void setPin(String pin) {
         this.pin = pin;
     }
@@ -36,15 +38,7 @@ public abstract class Person {
         return name;
     }
 
-    public void setName(String name) {
-        this.name = name;
-    }
-
     public String getDNI() {
         return DNI;
-    }
-
-    public void setDNI(String DNI) {
-        this.DNI = DNI;
     }
 }

@@ -2,11 +2,11 @@ package NorthPoleDatabase.Build;
 
 public class Client extends Person implements ClientOps {
     // ENUM for rol
-    private final Rol rol;
+    private Rol rol;
 
     public Client(String DNI, String name, String pin) {
         super(DNI, name, pin);
-        this.rol = Rol.C;
+        this.rol = Rol.C; // default value in the DDL
     }
 
     // Abstract methods

@@ -1,11 +1,11 @@
 package NorthPoleDatabase.Build;
 
 public class Employee extends Person implements EmpOps {
-    private final Rol rol;
+    private Rol rol;
 
     public Employee(String DNI, String name, String pin) {
         super(DNI, name, pin);
-        this.rol = Rol.E;
+        this.rol = Rol.E; // default value in the DDL
     }
 
     // Abstract methods
