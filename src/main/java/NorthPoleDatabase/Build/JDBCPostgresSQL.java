@@ -1,6 +1,5 @@
 package NorthPoleDatabase.Build;
 
-import javax.xml.transform.Result;
 import java.sql.*;
 
 public class JDBCPostgresSQL {
@@ -241,7 +240,7 @@ public class JDBCPostgresSQL {
     }
 
     // Method to check if the ATM that the employee wants to UPDATE exists or not
-    public static boolean validateATMUPDATE(String address, String city) {
+    public static ResultSet getATM(String address, String city) {
         try {
             String preparedStatementSQL =
                     "SELECT * FROM cajeros WHERE direccion = ? AND poblacion = ?";
@@ -250,11 +249,12 @@ public class JDBCPostgresSQL {
             preparedStatement.setString(2, city);
 
             ResultSet resultSet = preparedStatement.executeQuery(preparedStatementSQL);
-            return resultSet.first();
+            if (!resultSet.first()) return null; // Nothing found
+            return resultSet; // If the query found something, return that
         } catch (SQLException sqlException) {
             System.err.println("Error validating ATM UPDATE from PostgresSQL");
             sqlException.printStackTrace();
-            return false;
+            return null;
         }
     }
     // UPDATE
@@ -289,12 +289,10 @@ public class JDBCPostgresSQL {
             if (tuplesAffected > 0) {
                 connection.commit();
                 System.out.println("Successfully updated ATM UPDATE");
-                connection.setAutoCommit(true);
                 return true;
             } else {
                 connection.rollback();
                 System.out.println("Failed to update ATM UPDATE");
-                connection.setAutoCommit(true);
                 return false;
             }
         } catch (SQLException sqlException) {
@@ -302,7 +300,18 @@ public class JDBCPostgresSQL {
             sqlException.printStackTrace();
             connection.rollback(); // If something went wrong...
             return false;
+        } finally { // No matter what, reset it to true
+            try {
+                connection.setAutoCommit(true);
+            } catch (SQLException sqlException) {
+                System.err.println("Failure to set auto-commit back to true");
+                sqlException.printStackTrace();
+            }
         }
+    }
+    // Method overloading
+    public static void updateAccounts(int originAccount, int amountToWithdraw) {
+        updateAccounts(originAccount, -1, amountToWithdraw);
     }
 
     public static boolean updateAccounts(int originAccount, int destinationAccount, int amountToTransfer) {
@@ -311,45 +320,62 @@ public class JDBCPostgresSQL {
             connection.setAutoCommit(false);
 
             String originPreparedStatementSQL =
-                    "UPDATE FROM cuentas " +
+                    "UPDATE cuentas " +
                     "SET saldo = saldo - ? " +
                     "WHERE id = ?";
             String destinationPreparedStatementSQL =
-                    "UPDATE FROM cuentas " +
+                    "UPDATE cuentas " +
                     "SET saldo = saldo + ? " +
                     "WHERE id = ?";
 
             PreparedStatement ogPreparedStatement = connection.prepareStatement(originPreparedStatementSQL);
-            PreparedStatement destPreparedStatement = connection.prepareStatement(destinationPreparedStatementSQL);
+            PreparedStatement destPreparedStatement = null;
+
+            // Like this we can reuse this code for money withdrawal and not only transactions
+            int amountToTransferTo = (destinationAccount == -1) ? 0 : amountToTransfer;
 
             ogPreparedStatement.setInt(1, amountToTransfer);
             ogPreparedStatement.setInt(2, originAccount);
-
-            destPreparedStatement.setInt(1, amountToTransfer);
-            destPreparedStatement.setInt(2, destinationAccount);
-
+            if (destinationAccount == -1) {
+                destPreparedStatement = connection.prepareStatement(destinationPreparedStatementSQL);
+                destPreparedStatement.setInt(1, amountToTransferTo);
+                destPreparedStatement.setInt(2, destinationAccount);
+            }
             tuplesAffected = 0;
             int tuplesAffected2 = 0; // To store the second UPDATE results
             tuplesAffected = ogPreparedStatement.executeUpdate(originPreparedStatementSQL);
-            tuplesAffected2 = destPreparedStatement.executeUpdate(destinationPreparedStatementSQL);
+            tuplesAffected2 = (destPreparedStatement != null) ?
+                    destPreparedStatement.executeUpdate(destinationPreparedStatementSQL) : 0;
             // Frees memory
             ogPreparedStatement.close();
-            destPreparedStatement.close();
-            if (tuplesAffected > 0 && tuplesAffected2 > 0) {
+            if (destPreparedStatement != null) destPreparedStatement.close();
+            // If the destination account statement was not null, it means that something was executed
+            // The other case is withdrawal situation, represented by a -1. This way we control both cases
+            if (tuplesAffected > 0 && (destinationAccount == -1 || tuplesAffected2 > 0)) {
                 connection.commit();
                 System.out.println("The transaction was successful");
-                connection.setAutoCommit(true);
                 return true;
             } else {
                 connection.rollback();
                 System.out.println("Failed to do the transaction");
-                connection.setAutoCommit(true);
                 return false;
             }
         } catch (SQLException sqlException) {
-            System.err.println("Error while trying to make the transaction");
-            sqlException.printStackTrace();
+            try {
+                System.err.println("Error while trying to make the transaction");
+                sqlException.printStackTrace();
+                connection.rollback();
+            } catch (SQLException sqlException2) {
+                System.err.println("Error during rollback");
+            }
             return false;
+        } finally { // autocommit back to true in a finally block ensures that no matter what, this will be restored
+            try {
+                connection.setAutoCommit(true);
+            } catch (SQLException sqlException) {
+                System.err.println("Failure to set auto-commit back to true");
+                sqlException.printStackTrace();
+            }
         }
     }
 
@@ -358,7 +384,7 @@ public class JDBCPostgresSQL {
             connection.setAutoCommit(false);
 
             String preparedStatementSQL =
-                    "UPDATE FROM clientes " +
+                    "UPDATE clientes " +
                     "SET pin = ? " +
                     "WHERE dni = ?";
 
@@ -371,18 +397,30 @@ public class JDBCPostgresSQL {
             if (tuplesAffected > 0) {
                 connection.commit();
                 System.out.println("PIN change operation was successful");
-                connection.setAutoCommit(true);
                 return true;
             } else {
                 connection.rollback();
                 System.out.println("Error while trying to change the PIN");
-                connection.setAutoCommit(true);
                 return false;
             }
         } catch (SQLException sqlException) {
-            System.err.println("Error while trying to change the PIN in PostgresSQL");
-            sqlException.printStackTrace();
-            return false;
+            try {
+                System.err.println("Error while trying to change the PIN in PostgresSQL");
+                sqlException.printStackTrace();
+                connection.rollback();
+                return false;
+            } catch (SQLException sqlException2) {
+                System.err.println("Error during rollback");
+                sqlException2.printStackTrace();
+                return false;
+            }
+        } finally {
+            try {
+                connection.setAutoCommit(true);
+            } catch (SQLException sqlException) {
+                System.err.println("Failure to set auto-commit back to true");
+                sqlException.printStackTrace();
+            }
         }
     }
 
@@ -453,15 +491,25 @@ public class JDBCPostgresSQL {
                 System.out.println("Name: " + name);
                 System.out.println("----------------------------------------");
                 connection.commit();
-                connection.setAutoCommit(true);
             } else {
                 System.out.println("Error. Could not delete the client from the database");
                 connection.rollback();
-                connection.setAutoCommit(true);
             }
         } catch (SQLException sqlException) {
-            System.err.println("Error deleting user from PostgresSQL");
-            sqlException.printStackTrace();
+            try {
+                System.err.println("Error deleting user from PostgresSQL");
+                connection.rollback();
+                sqlException.printStackTrace();
+            } catch (SQLException sqlException2) {
+                System.err.println("Error during rollback");
+            }
+        } finally {
+            try {
+                connection.setAutoCommit(true);
+            } catch (SQLException sqlException) {
+                System.err.println("Failure to set auto-commit back to true");
+                sqlException.printStackTrace();
+            }
         }
     }
 
@@ -511,12 +559,22 @@ public class JDBCPostgresSQL {
                 connection.setAutoCommit(true);
             }
         } catch (SQLException sqlException) {
-            System.err.println("Error deleting account from PostgresSQL");
-            sqlException.printStackTrace();
+            try {
+                System.err.println("Error deleting account from PostgresSQL");
+                sqlException.printStackTrace();
+                connection.rollback();
+            } catch (SQLException sqlException2) {
+                System.err.println("Error during rollback");
+            }
+        } finally {
+            try {
+                connection.setAutoCommit(true);
+            } catch (SQLException sqlException) {
+                System.err.println("Failure to set auto-commit back to true");
+                sqlException.printStackTrace();
+            }
         }
     }
-
-
     // Getters and Setters
     public String getUrl() {
         return URL;

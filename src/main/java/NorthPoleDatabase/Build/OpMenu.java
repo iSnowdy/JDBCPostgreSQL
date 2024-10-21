@@ -166,7 +166,7 @@ public class OpMenu {
                 }
                 case 2 -> {
                     // Withdraw logic
-
+                    this.userClient.withdrawMoney();
                     // Always bring the user back to the main menu
                     promptUser();
                 }
@@ -199,5 +199,4 @@ public class OpMenu {
             promptUser();
         }
     }
-
 }

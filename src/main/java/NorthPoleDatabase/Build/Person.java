@@ -158,7 +158,7 @@ public abstract class Person {
     public boolean validateATM(String address, String city) {
             // This static method returns true if any information at all is returned with
             // a SELECT using the given parameters
-        if (!(JDBCPostgresSQL.validateATMUPDATE(address, city))) {
+        if (JDBCPostgresSQL.getATM(address, city) == null) {
             System.out.println("Invalid address or city. Please try again...");
             System.out.println("If you want to exit the operation, please type EXIT");
             return false;

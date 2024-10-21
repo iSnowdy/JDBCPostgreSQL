@@ -65,8 +65,8 @@ public class Employee extends Person implements EmpOps {
             ScannerCreator.nextLine();
         }
     }
-
     // Interface methods
+
     // Refills the amount of bills an ATM has. It will call two method. (1) A method to
     // validate that the address of the ATM is valid and then (2) a method that will
     // validate user input before updating the ATM
@@ -271,7 +271,6 @@ public class Employee extends Person implements EmpOps {
         // 4 digit value between the range of (1000, 9999)
         return String.valueOf((int)(Math.random() * 9000) + 1000);
     }
-
     @Override
     public String toString() {
         String information = super.toString();
