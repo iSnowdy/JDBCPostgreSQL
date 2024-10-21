@@ -40,11 +40,13 @@ public class OpMenu {
                     System.out.println("Please select a valid option");
                     choice = ScannerCreator.nextInt();
                 }
+                clientSwitch();
             } else if (rol == Rol.E) {
                 while (!(1 <= this.choice && this.choice <= 9)) {
                     System.out.println("Please select a valid option");
                     choice = ScannerCreator.nextInt();
                 }
+                employeeSwitch();
             }
         } catch (Exception e) {
             System.err.println("Unexpected error");
@@ -101,48 +103,49 @@ public class OpMenu {
                 }
                 case 2 -> {
                     // Add client logic
-
+                    this.userEmployee.addClient();
                     // Always bring the user back to the main menu
                     promptUser();
                 }
                 case 3 -> {
                     // Delete client logic
-
+                    this.userEmployee.deleteClient();
                     // Always bring the user back to the main menu
                     promptUser();
                 }
                 case 4 -> {
                     // Add account logic
-
+                    this.userEmployee.addAccount();
                     // Always bring the user back to the main menu
                     promptUser();
                 }
                 case 5 -> {
                     // Delete account logic
-
+                    this.userEmployee.deleteAccount();
                     // Always bring the user back to the main menu
                     promptUser();
                 }
                 case 6 -> {
                     // Transaction logic
-
+                    this.userEmployee.makeTransfer();
                     // Always bring the user back to the main menu
                     promptUser();
                 }
                 case 7 -> {
                     // Check balance logic
-
+                    this.userEmployee.checkBalance();
                     // Always bring the user back to the main menu
                     promptUser();
                 }
                 case 8 -> {
                     // Change PIN logic
-
+                    this.userEmployee.changePIN();
                     // Always bring the user back to the main menu
                     promptUser();
                 }
                 case 9 -> {
                     System.out.println("Goodbye " + this.name + "!");
+                    JDBCPostgresSQL.disconnect();
                     System.exit(0);
                 }
             }
@@ -153,41 +156,47 @@ public class OpMenu {
     }
 
     private void clientSwitch() {
-        switch (this.choice) {
-            case 1 -> {
-                // Deposit money logic
+        try {
+            switch (this.choice) {
+                case 1 -> {
+                    // Deposit money logic
+                    this.userClient.depositMoney();
+                    // Always bring the user back to the main menu
+                    promptUser();
+                }
+                case 2 -> {
+                    // Withdraw logic
 
-                // Always bring the user back to the main menu
-                promptUser();
+                    // Always bring the user back to the main menu
+                    promptUser();
+                }
+                case 3 -> {
+                    // Transaction logic
+                    this.userClient.makeTransfer();
+                    // Always bring the user back to the main menu
+                    promptUser();
+                }
+                case 4 -> {
+                    // Check balance logic
+                    this.userClient.checkBalance();
+                    // Always bring the user back to the main menu
+                    promptUser();
+                }
+                case 5 -> {
+                    // Change PIN logic
+                    this.userClient.changePIN();
+                    // Always bring the user back to the main menu
+                    promptUser();
+                }
+                case 6 -> {
+                    System.out.println("Goodbye " + this.name + "!");
+                    JDBCPostgresSQL.disconnect();
+                    System.exit(0);
+                }
             }
-            case 2 -> {
-                // Withdraw logic
-
-                // Always bring the user back to the main menu
-                promptUser();
-            }
-            case 3 -> {
-                // Transaction logic
-
-                // Always bring the user back to the main menu
-                promptUser();
-            }
-            case 4 -> {
-                // Check balance logic
-
-                // Always bring the user back to the main menu
-                promptUser();
-            }
-            case 5 -> {
-                // Change PIN logic
-
-                // Always bring the user back to the main menu
-                promptUser();
-            }
-            case 6 -> {
-                System.out.println("Goodbye " + this.name + "!");
-                System.exit(0);
-            }
+        } catch (ExitException exitException) {
+            System.out.println("Welcome back to the Operation Menu...");
+            promptUser();
         }
     }
 

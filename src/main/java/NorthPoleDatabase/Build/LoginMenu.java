@@ -27,7 +27,7 @@ public class LoginMenu {
             pin = promptPIN();
 
             ResultSet resultSet = null;
-            resultSet = JDBCPostgreSQL.getPerson(DNI, pin);
+            resultSet = JDBCPostgresSQL.getPerson(DNI, pin);
 
             try {
                 if (resultSet.next()) {

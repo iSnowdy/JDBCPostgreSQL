@@ -1,0 +1,532 @@
+package NorthPoleDatabase.Build;
+
+import javax.xml.transform.Result;
+import java.sql.*;
+
+public class JDBCPostgresSQL {
+    // Strings to build the valid URL
+    private final String URL = "jdbc:postgresql://";
+    // jdbc:postgresql://localhost:5432/postgres
+    private final String HOST;
+    private final String PORT = ":5432/";
+    private final String DBNAME;
+    private final String VALIDURL;
+    // User information
+    private final String USERNAME;
+    private final String PASSWORD;
+    // Object that will represent the connection to the DB
+    // once the Driver is called (.DriverManager)
+    private static Connection connection;
+    // To store the return number of tuples affected after a SQL query
+    // public access just in case we want to verify from outside the class
+    public static int tuplesAffected;
+
+    // localhost constructor
+    public JDBCPostgresSQL(String USERNAME, String PASSWORD, String DBNAME) {
+        this.USERNAME = USERNAME;
+        this.PASSWORD = PASSWORD;
+        this.DBNAME = DBNAME;
+        this.HOST = "localhost";
+
+        this.VALIDURL = HOST + URL + PORT + DBNAME;
+
+        // Connection to the DB is not left in the hands of the user
+        connect();
+    }
+
+    // HOST constructor
+    public JDBCPostgresSQL(String USERNAME, String PASSWORD, String HOST, String DBNAME) {
+        this.USERNAME = USERNAME;
+        this.PASSWORD = PASSWORD;
+        this.DBNAME = DBNAME;
+        this.HOST = HOST;
+
+        this.VALIDURL = HOST + URL + PORT + DBNAME;
+
+        // Connecting using a specific HOST
+        connect(VALIDURL);
+    }
+
+    // Given the USERNAME and PASSWORD, connects to the DB
+    private void connect() {
+        try {
+            this.connection = DriverManager.getConnection(this.VALIDURL, this.USERNAME, this.PASSWORD);
+            System.out.println("You have been succesfully connected to the PostgresSQL database");
+        } catch (SQLException sqlException) {
+            System.err.println("Error connecting to PostgresSQL");
+            sqlException.printStackTrace();
+        }
+    }
+
+    // When the connection is not done through localhost
+    private void connect(String URL) {
+        try {
+            this.connection = DriverManager.getConnection(URL, this.USERNAME, this.PASSWORD);
+            System.out.println("You have been succesfully connected to the PostgresSQL database");
+        } catch (SQLException sqlException) {
+            System.err.println("Error connecting to PostgresSQL");
+            sqlException.printStackTrace();
+        }
+    }
+
+    // Checks if the connection is still valid. Probably not needed here? But should be
+    // good practice. Especially later on if we use long-time connections / pools
+    protected boolean validConnection() {
+        try {
+            if (connection != null && connection.isValid(0)) {
+                System.out.println("Connection is valid");
+                return true;
+            }
+        } catch (SQLException sqlException) {
+            System.err.println("Invalid connection");
+            sqlException.printStackTrace();
+        }
+        return false;
+    }
+
+    // Closes the connection to the DB
+    protected static void disconnect() {
+        try {
+            System.out.println("Closing connection...");
+            connection.close();
+            System.out.println("Connection closed");
+        } catch (SQLException sqlException) {
+            System.err.println("Error closing connection");
+            sqlException.printStackTrace();
+        }
+    }
+
+    // Queries
+    // pSt.executeQuery() == SELECT
+    // pSt.executeUpdate() == INSERT, UPDATE, DELETE
+
+    // SELECT
+
+    // Search for a client. Only need DNI because the name and PIn
+    // in reality can be repeated; which is not the case for DNI (PK)
+    public static ResultSet getClient(String DNI) {
+        try {
+            String preparedStatementSQL =
+                    "SELECT * FROM clientes WHERE DNI = ?";
+            PreparedStatement preparedStatement = connection.prepareStatement(preparedStatementSQL);
+            preparedStatement.setString(1, DNI);
+
+            ResultSet resultSet = preparedStatement.executeQuery(preparedStatementSQL);
+
+            // If we don't have a single register, then the client does not exist
+            if (!resultSet.first()) return null;
+            // Otherwise, return the ResultSet of the query
+            // preparedStatement.close();
+            // Cannot close the statement here because it will also close the ResultSet Object,
+            // losing the return information in the process. So this preparedStatement has to be eventually
+            // automatically closed
+            return resultSet;
+        } catch (SQLException sqlException) {
+            System.err.println("Error getting client from PostgresSQL");
+            sqlException.printStackTrace();
+            return null;
+        }
+    }
+
+    public static ResultSet getEmployee(String DNI, String pin) {
+        try {
+            String preparedStatementSQL =
+                    "SELECT * FROM empleados " +
+                    "WHERE DNI = ? AND PIN = ?";
+            PreparedStatement preparedStatement = connection.prepareStatement(preparedStatementSQL);
+            preparedStatement.setString(1, DNI);
+            preparedStatement.setString(2, pin);
+
+            ResultSet resultSet = preparedStatement.executeQuery(preparedStatementSQL);
+
+            // If we don't have a single register, then the client does not exist
+            if (!resultSet.first()) return null;
+            // Otherwise, return the ResultSet of the query
+            return resultSet;
+        } catch (SQLException sqlException) {
+            System.err.println("Error getting employee from PostgresSQL");
+            sqlException.printStackTrace();
+            return null;
+        }
+    }
+
+    public static ResultSet getPerson(String DNI, String pin) {
+        // UNION can only return one row even if some rows from two queries return something
+        // UNION ALL, on the other hand, can result duplicates. Which we want since we are
+        // querying two tables where an employee could also be a client
+        try {
+            String preparedStatementSQL =
+                    "SELECT 'cliente' AS type, DNI FROM empleados " +
+                            "WHERE DNI = ? AND PIN = ? " +
+                    "UNION ALL + " +
+                    "SELECT 'empleado' AS type, DNI FROM empleados " +
+                            "WHERE DNI = ? AND PIN = ?";
+            PreparedStatement preparedStatement = connection.prepareStatement(preparedStatementSQL);
+            preparedStatement.setString(1, DNI);
+            preparedStatement.setString(2, pin);
+            preparedStatement.setString(3, DNI);
+            preparedStatement.setString(4, pin);
+
+            ResultSet resultSet = preparedStatement.executeQuery(preparedStatementSQL);
+
+            // If we don't have a single register, then the client does not exist
+            if (!resultSet.first()) return null;
+            // Otherwise, return the ResultSet of the query
+            return resultSet;
+        } catch (SQLException sqlException) {
+            System.err.println("Error getting client from PostgresSQL");
+            sqlException.printStackTrace();
+            return null;
+        }
+    }
+
+    public static ResultSet getAccount(int account) {
+        try {
+            String preparedStatementSQL =
+                    "SELECT * FROM cuentas " +
+                    "WHERE numero = ?";
+
+            PreparedStatement preparedStatement = connection.prepareStatement(preparedStatementSQL);
+            preparedStatement.setInt(1, account);
+
+            ResultSet resultSet = preparedStatement.executeQuery(preparedStatementSQL);
+
+            if (!resultSet.first()) return null; // Does not exist
+            return resultSet; // Returns all the information contained in the DB for that account number
+        } catch (SQLException sqlException) {
+            System.err.println("Error getting account from PostgresSQL");
+            sqlException.printStackTrace();
+            return null;
+        }
+    }
+
+    public static ResultSet getAccount(String DNI) {
+        try {
+            String preparedStatementSQL =
+                    "SELECT * FROM cuentas " +
+                    "WHERE dni_titular = " +
+                            "(SELECT dni FROM clientes WHERE dni = ?)";
+
+            PreparedStatement preparedStatement = connection.prepareStatement(preparedStatementSQL);
+            preparedStatement.setString(1, DNI);
+
+            ResultSet resultSet = preparedStatement.executeQuery(preparedStatementSQL);
+
+            if (!resultSet.first()) return null; // Does not exist
+            return resultSet; // Returns all the information contained in the DB for that account number
+        } catch (SQLException sqlException) {
+            System.err.println("Error getting account from PostgresSQL");
+            sqlException.printStackTrace();
+            return null;
+        }
+    }
+    // Method to return the number of tuples if a client's bank
+    public static int accountAmount(String DNI) {
+        try {
+            String preparedStatementSQL =
+                    "SELECT COUNT(*) FROM cuentas " +
+                    "WHERE dni_titular = ?";
+
+            PreparedStatement preparedStatement = connection.prepareStatement(preparedStatementSQL);
+            preparedStatement.setString(1, DNI);
+
+            int tuplesAmount = preparedStatement.executeQuery(preparedStatementSQL).getInt("count");
+            preparedStatement.close();
+            return tuplesAmount;
+        } catch (SQLException sqlException) {
+            System.err.println("Error getting account amount from PostgresSQL");
+            sqlException.printStackTrace();
+            return 0;
+        }
+    }
+
+    // Method to check if the ATM that the employee wants to UPDATE exists or not
+    public static boolean validateATMUPDATE(String address, String city) {
+        try {
+            String preparedStatementSQL =
+                    "SELECT * FROM cajeros WHERE direccion = ? AND poblacion = ?";
+            PreparedStatement preparedStatement = connection.prepareStatement(preparedStatementSQL);
+            preparedStatement.setString(1, address);
+            preparedStatement.setString(2, city);
+
+            ResultSet resultSet = preparedStatement.executeQuery(preparedStatementSQL);
+            return resultSet.first();
+        } catch (SQLException sqlException) {
+            System.err.println("Error validating ATM UPDATE from PostgresSQL");
+            sqlException.printStackTrace();
+            return false;
+        }
+    }
+    // UPDATE
+    public static boolean updateATM(int[] bills, String address, String city) throws SQLException {
+        try {
+            // For updates, we will enclose them in a Transaction to ensure
+            // the DB ACID properties
+            connection.setAutoCommit(false);
+
+            String preparedStatementSQL =
+                    "UPDATE cajeros " +
+                    "SET billetes5 = billetes5 + ?, " +
+                    "billetes10 = billetes10 + ?, " +
+                    "billetes20 = billetes20 + ?, " +
+                    "billetes50 = billetes50 + ? " +
+                    "WHERE direccion = ? AND poblacion = ?";
+            PreparedStatement preparedStatement = connection.prepareStatement(preparedStatementSQL);
+
+            // Updates all the ? values at once
+            for (int i = 0; i < bills.length; i++) {
+                preparedStatement.setInt(i + 1, bills[i]);
+            }
+            preparedStatement.setString(5, address);
+            preparedStatement.setString(6, city);
+            // PreparedStatement.executeUpdate() is used for any queries that somehow change
+            // the DB (INSERT, UPDATE, DELETE); DML. It returns how many rows or tuples were
+            // affected by that statement. So as long it is > 0, we know the query was
+            // correctly executed
+            tuplesAffected = 0; // Clears any data that may have been previously stored inside
+            tuplesAffected =  preparedStatement.executeUpdate(preparedStatementSQL);
+            preparedStatement.close(); // Frees up resources
+            if (tuplesAffected > 0) {
+                connection.commit();
+                System.out.println("Successfully updated ATM UPDATE");
+                connection.setAutoCommit(true);
+                return true;
+            } else {
+                connection.rollback();
+                System.out.println("Failed to update ATM UPDATE");
+                connection.setAutoCommit(true);
+                return false;
+            }
+        } catch (SQLException sqlException) {
+            System.err.println("Error while trying to update the ATM");
+            sqlException.printStackTrace();
+            connection.rollback(); // If something went wrong...
+            return false;
+        }
+    }
+
+    public static boolean updateAccounts(int originAccount, int destinationAccount, int amountToTransfer) {
+        try {
+            // Envelope the UPDATE in a Transaction
+            connection.setAutoCommit(false);
+
+            String originPreparedStatementSQL =
+                    "UPDATE FROM cuentas " +
+                    "SET saldo = saldo - ? " +
+                    "WHERE id = ?";
+            String destinationPreparedStatementSQL =
+                    "UPDATE FROM cuentas " +
+                    "SET saldo = saldo + ? " +
+                    "WHERE id = ?";
+
+            PreparedStatement ogPreparedStatement = connection.prepareStatement(originPreparedStatementSQL);
+            PreparedStatement destPreparedStatement = connection.prepareStatement(destinationPreparedStatementSQL);
+
+            ogPreparedStatement.setInt(1, amountToTransfer);
+            ogPreparedStatement.setInt(2, originAccount);
+
+            destPreparedStatement.setInt(1, amountToTransfer);
+            destPreparedStatement.setInt(2, destinationAccount);
+
+            tuplesAffected = 0;
+            int tuplesAffected2 = 0; // To store the second UPDATE results
+            tuplesAffected = ogPreparedStatement.executeUpdate(originPreparedStatementSQL);
+            tuplesAffected2 = destPreparedStatement.executeUpdate(destinationPreparedStatementSQL);
+            // Frees memory
+            ogPreparedStatement.close();
+            destPreparedStatement.close();
+            if (tuplesAffected > 0 && tuplesAffected2 > 0) {
+                connection.commit();
+                System.out.println("The transaction was successful");
+                connection.setAutoCommit(true);
+                return true;
+            } else {
+                connection.rollback();
+                System.out.println("Failed to do the transaction");
+                connection.setAutoCommit(true);
+                return false;
+            }
+        } catch (SQLException sqlException) {
+            System.err.println("Error while trying to make the transaction");
+            sqlException.printStackTrace();
+            return false;
+        }
+    }
+
+    public static boolean updatePIN(String DNI) {
+        try {
+            connection.setAutoCommit(false);
+
+            String preparedStatementSQL =
+                    "UPDATE FROM clientes " +
+                    "SET pin = ? " +
+                    "WHERE dni = ?";
+
+            PreparedStatement preparedStatement = connection.prepareStatement(preparedStatementSQL);
+            preparedStatement.setString(1, DNI);
+
+            tuplesAffected = 0;
+            tuplesAffected = preparedStatement.executeUpdate(preparedStatementSQL);
+            preparedStatement.close();
+            if (tuplesAffected > 0) {
+                connection.commit();
+                System.out.println("PIN change operation was successful");
+                connection.setAutoCommit(true);
+                return true;
+            } else {
+                connection.rollback();
+                System.out.println("Error while trying to change the PIN");
+                connection.setAutoCommit(true);
+                return false;
+            }
+        } catch (SQLException sqlException) {
+            System.err.println("Error while trying to change the PIN in PostgresSQL");
+            sqlException.printStackTrace();
+            return false;
+        }
+    }
+
+    public static void insertUser(String DNI, String name, String pin, Rol rol) {
+        try {
+            String preparedStatementSQL = "";
+
+            switch (rol) {
+                case C -> preparedStatementSQL =
+                        "INSERT INTO clientes " +
+                        "(DNI, nombre, pin, rol) VALUES (?, ?, ?, ?)";
+                case E -> preparedStatementSQL =
+                        "INSERT INTO empleados " +
+                        "(DNI, nombre, pin, rol) VALUES (?, ?, ?, ?)";
+            }
+
+            PreparedStatement preparedStatement = connection.prepareStatement(preparedStatementSQL);
+            preparedStatement.setString(1, DNI);
+            preparedStatement.setString(2, name);
+            preparedStatement.setString(3, pin);
+            preparedStatement.setString(4, rol.toString());
+
+            tuplesAffected = 0; // Clears any data that may have been previously stored inside
+            tuplesAffected = preparedStatement.executeUpdate(preparedStatementSQL);
+            if (tuplesAffected > 0) {
+                System.out.println("----------------------------------------");
+                System.out.println("Client addition successful. Recap:");
+                System.out.println("DNI: " + DNI);
+                System.out.println("Name: " + name);
+                System.out.println("PIN: " + pin);
+                System.out.println("----------------------------------------");
+                preparedStatement.close(); // Frees up resources
+
+                // Automatically creates the account
+                // The ID is automatically generated by PostgresSQL and the balance is set to default 0
+                insertAccount(DNI);
+
+            } else {
+                System.out.println("Error. Could not add the client to the database.");
+                preparedStatement.close(); // Frees up resources
+            }
+        } catch (SQLException sqlException) {
+            System.err.println("Error inserting user from PostgresSQL");
+            sqlException.printStackTrace();
+        }
+    }
+
+    public static void deleteUser(String DNI, String name) {
+        try {
+            // Initiate transaction. Someone could be using the client's information
+            // while we are trying to delete it from the DB. So a transaction is ideal
+            connection.setAutoCommit(false);
+            String preparedStatementSQL =
+                    "DELETE FROM clientes" +
+                    "WHERE DNI = ? AND name = ?";
+
+            PreparedStatement preparedStatement = connection.prepareStatement(preparedStatementSQL);
+            preparedStatement.setString(1, DNI);
+            preparedStatement.setString(2, name);
+
+            tuplesAffected = 0; // Clears any data that may have been previously stored inside
+            tuplesAffected = preparedStatement.executeUpdate(preparedStatementSQL);
+            preparedStatement.close(); // Frees up resources
+            if (tuplesAffected > 0) {
+                System.out.println("----------------------------------------");
+                System.out.println("Client deletion successful. Recap:");
+                System.out.println("DNI: " + DNI);
+                System.out.println("Name: " + name);
+                System.out.println("----------------------------------------");
+                connection.commit();
+                connection.setAutoCommit(true);
+            } else {
+                System.out.println("Error. Could not delete the client from the database");
+                connection.rollback();
+                connection.setAutoCommit(true);
+            }
+        } catch (SQLException sqlException) {
+            System.err.println("Error deleting user from PostgresSQL");
+            sqlException.printStackTrace();
+        }
+    }
+
+    public static void insertAccount(String DNI) {
+        try {
+            String preparedStatementSQL =
+                    "INSERT INTO cuentas " +
+                    "(DNI) VALUES (?)";
+
+            PreparedStatement preparedStatement = connection.prepareStatement(preparedStatementSQL);
+            preparedStatement.setString(1, DNI);
+
+
+            tuplesAffected = 0;
+            tuplesAffected = preparedStatement.executeUpdate(preparedStatementSQL);
+            if (tuplesAffected > 0) {
+                System.out.println("The account for the DNI " + DNI + " has been created successfully.");
+            } else {
+                System.out.println("Error. Could not add the account to the database.");
+            }
+        } catch (SQLException sqlException) {
+            System.err.println("Error inserting account from PostgresSQL");
+            sqlException.printStackTrace();
+        }
+    }
+
+    public static void deleteAccount(String DNI) {
+        try {
+            connection.setAutoCommit(false);
+            String preparedStatementSQL =
+                    "DELETE FROM cuentas" +
+                    "WHERE DNI = ?";
+
+            PreparedStatement preparedStatement = connection.prepareStatement(preparedStatementSQL);
+            preparedStatement.setString(1, DNI);
+
+            tuplesAffected = 0;
+            tuplesAffected = preparedStatement.executeUpdate(preparedStatementSQL);
+
+            if (tuplesAffected > 0) {
+                System.out.println("The account for the DNI " + DNI + " has been successfully deleted");
+                connection.commit();
+                connection.setAutoCommit(true);
+            } else {
+                System.out.println("Error. Could not delete the account from the database.");
+                connection.rollback();
+                connection.setAutoCommit(true);
+            }
+        } catch (SQLException sqlException) {
+            System.err.println("Error deleting account from PostgresSQL");
+            sqlException.printStackTrace();
+        }
+    }
+
+
+    // Getters and Setters
+    public String getUrl() {
+        return URL;
+    }
+
+    public String getUSERNAME() {
+        return USERNAME;
+    }
+
+    public String getPassword() {
+        return PASSWORD;
+    }
+}
