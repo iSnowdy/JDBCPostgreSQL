@@ -18,8 +18,17 @@ public class ScannerCreator {
     public static void closeScanner() {
         scanner.close();
     }
+    // Like this we avoid those pesky Strings into Int Scanners
+    // that will cause InputMissMatch Exceptions
     public static int nextInt() {
-        return scanner.nextInt();
+        while (true) {
+            if (scanner.hasNextInt()) {
+                return scanner.nextInt();
+            } else {
+                System.out.println("Invalid input. It must be an integer. Please try again");
+                scanner.nextLine();
+            }
+        }
     }
     public static double nextFloat() {
         return scanner.nextFloat();

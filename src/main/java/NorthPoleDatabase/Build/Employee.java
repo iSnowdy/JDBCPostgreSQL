@@ -22,8 +22,6 @@ public class Employee extends Person implements EmpOps {
         int originAccount;
         int destinationAccount;
         int amountToTransfer = 0;
-        // Clears the buffer inside Scanner to avoid conflicts between String and int
-        ScannerCreator.nextLine();
 
         System.out.println("Initializing Transfer Operation (Employee)...");
 
@@ -50,6 +48,7 @@ public class Employee extends Person implements EmpOps {
                 System.out.println("Destination account: " + destinationAccount);
                 System.out.println("Amount: " + amountToTransfer);
 
+                ScannerCreator.nextLine();
                 answer = ScannerCreator.nextLine();
                 if (answer.isEmpty() || answer.equalsIgnoreCase("y")) {
                     JDBCPostgresSQL.updateAccounts(originAccount, destinationAccount, amountToTransfer);
@@ -61,8 +60,6 @@ public class Employee extends Person implements EmpOps {
                     System.out.println("Invalid input. Please enter 'Y' for yes and 'n' for no");
                 }
             }
-            // Clears the buffer inside Scanner to avoid conflicts between String and int
-            ScannerCreator.nextLine();
         }
     }
     // Interface methods
@@ -72,18 +69,19 @@ public class Employee extends Person implements EmpOps {
     // validate user input before updating the ATM
     @Override
     public void refillBank() throws ExitException {
-        String addressATM = "";
-        String cityATM = "";
 
+        String addressATM;
+        String cityATM;
+        // Handle weird inputs
         System.out.println("Initializing Refill Bank operation...");
         // First of all, we need to know which ATM are we updating
         do {
-            System.out.print("Please write the address of the ATM you wish to access: ");
+            System.out.println("Please write the address of the ATM you wish to access: ");
             addressATM = ScannerCreator.nextLine();
             if (addressATM.equalsIgnoreCase("exit")) {
                 throw new ExitException("User chose to exit");
             }
-            System.out.print("Please write the city of the ATM you wish to access: ");
+            System.out.println("Please write the city of the ATM you wish to access: ");
             cityATM = ScannerCreator.nextLine();
         } while (!(this.validateATM(addressATM, cityATM)));
         // Call to Person method to prompt for bills
@@ -104,8 +102,10 @@ public class Employee extends Person implements EmpOps {
 
         while (!validClientInfo) {
             System.out.println("Please provide the following information");
-            System.out.print("Client's DNI: ");
-            DNI = ScannerCreator.nextLine();
+            do {
+                System.out.print("Client's DNI: ");
+                DNI = ScannerCreator.nextLine();
+            } while (!(validateDNI(DNI)));
             System.out.print("Client's name: ");
             name = ScannerCreator.nextLine();
             System.out.println("Automatically generating PIN number for the client...");
@@ -196,10 +196,6 @@ public class Employee extends Person implements EmpOps {
             System.out.print("Client's DNI: ");
             DNI = ScannerCreator.nextLine();
 
-            // Although inside the insertAccount() method there's validation of
-            // DNI, that would just return an error and end the progress. So in order
-            // to not cut so drastically the flow of the program, we prompt the user
-            // to retry. If they don't want, just exit the operation
             if (JDBCPostgresSQL.getClient(DNI) == null) {
                 System.out.println("Client not found. Please validate the input data");
                 System.out.println("Would you like to try again (Y/n)?");

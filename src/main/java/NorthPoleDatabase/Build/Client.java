@@ -154,7 +154,7 @@ public class Client extends Person implements ClientOps {
                     }
                     // Finally, update everything
                     JDBCPostgresSQL.updateATM(billsToWithdraw, addressATM, cityATM);
-
+                    JDBCPostgresSQL.updateAccounts(originAccount, withdrawAmount);
                     validAccounts = true;
                 } else {
                     System.out.println("Would you like to try a different amount? (Y/n)");

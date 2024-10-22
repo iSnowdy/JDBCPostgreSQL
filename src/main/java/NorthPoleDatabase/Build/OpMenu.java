@@ -28,6 +28,7 @@ public class OpMenu {
             case E -> this.userEmployee = new Employee(this.DNI, this.pin, this.name);
         }
         System.out.println("Welcome " + this.name + "!");
+        promptUser();
     }
 
     private void promptUser() {
@@ -91,8 +92,10 @@ public class OpMenu {
         System.out.println("|              6. Exit                      |");
         System.out.println("=============================================\n");
     }
-
+    // Every time we enter the switch, the Scanner buffer must be cleansed
+    // as to not cause conflicts between int (switch) and Strings (questions)
     private void employeeSwitch() {
+        ScannerCreator.nextLine();
         try {
             switch (this.choice) {
                 case 1 -> {
@@ -156,6 +159,7 @@ public class OpMenu {
     }
 
     private void clientSwitch() {
+        ScannerCreator.nextLine();
         try {
             switch (this.choice) {
                 case 1 -> {

@@ -1,0 +1,52 @@
+------------------------------------------------------------------------------------
+                                    ResultSet types
+------------------------------------------------------------------------------------
+There are (at least that I know of) 3 types of ResultSet.
+
+    1. Forward-only. This is the default type created when we instantiate ResultSet.
+    As the name implies, it is a type of Object that can only move forward, reading the
+    data it contains in a sequential manner. As a result, it consumes less resources than
+    the other types but, it is quite limited. We cannot do operations such as .previous(),
+    for example.
+    Resource-wise is the most efficient due to how 'simple' it is. It also does not need
+    to maintain a data buffer since it does not need to go back.
+    2. Scroll-insensitive. This type allows us to mover forward and backwards in the Object.
+    Like this we accomplish a more complete way of reading tuples. However, if we make any
+    changes to the data it contains in the DB, the changes will not reflect. It kind of
+    freezes the information the moment it receives it. So any UPDATEs after the call of the
+    ResultSet Object will not be reflected.
+    Ideally we use this type when we want to freely navigate tuples but do not care about
+    concurrency.
+    Resource-wise it is in the middle level. Although it does need to maintain a buffer
+    in order to be able to go back, since it is not synchronized it will use less
+    resources that the following type.
+    3. Scroll-sensitive. Just like the latter, it allows bidirectional read. However,
+    changes made on the DB after calling it will be reflected.
+    This makes it the perfect type when we need data to be synchronized with the DB.
+    Resource-wise it is obviously the most demanding one, but also the most complete
+    in terms of functionality.
+
+ResultSets can also be classified depending on the concurrency.
+
+    1. Concur-read-only. Predetermined type upon creating the Object. The data is not
+    synchronized and we cannot modify the data inside the ResultSet. So we are only
+    allowed to read from it.
+    2. Concur-updatable. In this one we can indeed modify the data that is stored
+    inside the ResultSet Object. It is quite useful to modify data directly from
+    the ResultSet as the changes will be reflected on the DB. Some methods are:
+    updateString(), updateRow(), insertRow()...
+
+This types are not mutually exclusive. Meaning that we can create a ResultSet that
+is Scroll-sensitive and also Concur-updatable.
+
+On the other hand, a one-sided communication could be created. If we were to
+instantiate a ResultSet Object that is forward-only / scroll-insensitive but
+concur-updatable, we would end up in a situation where the ResultSet would not
+receive any information from the DB but it would send changes from the ResultSet
+to the DB. Creation something like ResultSet ---> DB way of communication.
+
+
+------------------------------------------------------------------------------------
+                                    ResultSet types
+------------------------------------------------------------------------------------
+Ta

@@ -23,68 +23,6 @@ public abstract class Person {
 
     protected abstract void makeTransfer() throws ExitException;
 
-    public void changePIN() throws ExitException {
-        boolean validUser = false;
-        String answer;
-        String inputDNI;
-        System.out.println("Initializing PIN change Operation...");
-
-        while (!validUser) {
-            System.out.print("To ensure protection, please type in again the DNI: ");
-            inputDNI = ScannerCreator.nextLine();
-
-            if (this instanceof Employee) {
-                // If the user doing this operation is an employee, query the DB to
-                // check if he has provided a valid DNI
-                if (JDBCPostgresSQL.getClient(inputDNI) == null) {
-                    System.out.println("There are no client matches with the provided DNI");
-                    System.out.println("Would you like to try again? (Y/n)");
-                    answer = ScannerCreator.nextLine();
-                    if (answer.equals("n")) {
-                        System.out.println("Returning to the main menu...");
-                        throw new ExitException("User chose to exit");
-                    }
-                } else {
-                    System.out.println("Are you sure you want to CHANGE the PIN of the account with DNI " + inputDNI + "?");
-                    answer = ScannerCreator.nextLine();
-                    if (answer.isEmpty() || answer.equalsIgnoreCase("y")) {
-                        JDBCPostgresSQL.updatePIN(inputDNI);
-                        validUser = true;
-                    } else if (answer.equalsIgnoreCase("n")) {
-                        System.out.println("Returning to the main menu...");
-                        throw new ExitException("User chose to exit");
-                    } else {
-                        System.out.println("Invalid input. Please enter 'Y' or 'n' for no");
-                    }
-                }
-            } else if (this instanceof Client) {
-                // If the user on the other hand is a client, we just need to check
-                // if the DNI of the Object matches the input
-                if (!this.DNI.equals(inputDNI)) {
-                    System.out.println("Your DNI and the provided DNI do not match");
-                    System.out.println("Would you like to try again? (Y/n)");
-                    answer = ScannerCreator.nextLine();
-                    if (answer.equals("n")) {
-                        System.out.println("Returning to the main menu...");
-                        throw new ExitException("User chose to exit");
-                    }
-                } else {
-                    System.out.println("Are you sure you want to CHANGE the PIN of your account (Y/n)?");
-                    answer = ScannerCreator.nextLine();
-                    if (answer.isEmpty() || answer.equalsIgnoreCase("y")) {
-                        JDBCPostgresSQL.updatePIN(inputDNI);
-                        validUser = true;
-                    } else if (answer.equalsIgnoreCase("n")) {
-                        System.out.println("Returning to the main menu...");
-                        throw new ExitException("User chose to exit");
-                    } else {
-                        System.out.println("Invalid input. Please enter 'Y' or 'n' for no");
-                    }
-                }
-            }
-        }
-    }
-
     public void checkBalance() throws ExitException {
         boolean validUser = false;
         String answer;
@@ -92,7 +30,7 @@ public abstract class Person {
         System.out.println("Initializing Check Balance Operation...");
 
         while (!validUser) {
-            System.out.print("To ensure protection, please type in again the DNI: ");
+            System.out.println("To ensure protection, please type in the client's DNI: ");
             inputDNI = ScannerCreator.nextLine();
 
             if (this instanceof Employee) {
@@ -143,6 +81,77 @@ public abstract class Person {
         }
     }
 
+    public void changePIN() throws ExitException {
+        boolean validUser = false;
+        String answer;
+        String inputDNI;
+        String inputPin;
+        System.out.println("Initializing PIN change Operation...");
+
+        while (!validUser) {
+            System.out.println("To ensure protection, please type in again the DNI: ");
+            inputDNI = ScannerCreator.nextLine();
+
+            if (this instanceof Employee) {
+                // If the user doing this operation is an employee, query the DB to
+                // check if he has provided a valid DNI
+                if (JDBCPostgresSQL.getClient(inputDNI) == null) {
+                    System.out.println("There are no client matches with the provided DNI");
+                    System.out.println("Would you like to try again? (Y/n)");
+                    answer = ScannerCreator.nextLine();
+                    if (answer.equals("n")) {
+                        System.out.println("Returning to the main menu...");
+                        throw new ExitException("User chose to exit");
+                    }
+                } else {
+                    System.out.println("Are you sure you want to CHANGE the PIN of the account with DNI " + inputDNI + "?");
+                    answer = ScannerCreator.nextLine();
+                    if (answer.isEmpty() || answer.equalsIgnoreCase("y")) {
+                        System.out.print("Please provide the new PIN number: ");
+                        // Cannot be nextLine() because the '\n' is given as
+                        // parameter to the SQL x.x
+                        inputPin = ScannerCreator.next();
+                        ScannerCreator.nextLine();
+                        JDBCPostgresSQL.updatePIN(inputDNI, inputPin);
+                        validUser = true;
+                    } else if (answer.equalsIgnoreCase("n")) {
+                        System.out.println("Returning to the main menu...");
+                        throw new ExitException("User chose to exit");
+                    } else {
+                        System.out.println("Invalid input. Please enter 'Y' or 'n' for no");
+                    }
+                }
+            } else if (this instanceof Client) {
+                // If the user on the other hand is a client, we just need to check
+                // if the DNI of the Object matches the input
+                if (!this.DNI.equals(inputDNI)) {
+                    System.out.println("Your DNI and the provided DNI do not match");
+                    System.out.println("Would you like to try again? (Y/n)");
+                    answer = ScannerCreator.nextLine();
+                    if (answer.equals("n")) {
+                        System.out.println("Returning to the main menu...");
+                        throw new ExitException("User chose to exit");
+                    }
+                } else {
+                    System.out.println("Are you sure you want to CHANGE the PIN of your account (Y/n)?");
+                    answer = ScannerCreator.nextLine();
+                    if (answer.isEmpty() || answer.equalsIgnoreCase("y")) {
+                        System.out.print("Please provide the new PIN number: ");
+                        inputPin = ScannerCreator.next();
+                        ScannerCreator.nextLine();
+                        JDBCPostgresSQL.updatePIN(inputDNI, inputPin);
+                        validUser = true;
+                    } else if (answer.equalsIgnoreCase("n")) {
+                        System.out.println("Returning to the main menu...");
+                        throw new ExitException("User chose to exit");
+                    } else {
+                        System.out.println("Invalid input. Please enter 'Y' or 'n' for no");
+                    }
+                }
+            }
+        }
+    }
+
     public boolean validateDNI(String DNI) {
         String regex = "^[XYZ0-9][0-9]{7}[A-Z]$";
         Pattern pattern = Pattern.compile(regex);
@@ -162,9 +171,8 @@ public abstract class Person {
             System.out.println("Invalid address or city. Please try again...");
             System.out.println("If you want to exit the operation, please type EXIT");
             return false;
-        } else {
-            return true;
         }
+        return true;
     }
     // Method that will prompt the user for the amount of each bill and
     // and the same time validate that input. If the user wants to stop the
@@ -176,13 +184,13 @@ public abstract class Person {
         // Prompts the user and at the same time validates it to make sure
         // we do not get an invalid input and pass it to the SQL Query
         try {
-            System.out.println("5€ bills: ");
+            System.out.print("5€ bills: ");
             this.bills[0] = this.validateBillsInput(ScannerCreator.nextInt());
-            System.out.println("10€ bills: ");
+            System.out.print("10€ bills: ");
             this.bills[1] = this.validateBillsInput(ScannerCreator.nextInt());
-            System.out.println("20€ bills: ");
+            System.out.print("20€ bills: ");
             this.bills[2] = this.validateBillsInput(ScannerCreator.nextInt());
-            System.out.println("50€ bills: ");
+            System.out.print("50€ bills: ");
             this.bills[3] = this.validateBillsInput(ScannerCreator.nextInt());
             // Now that we have a valid input by the user stored in an
             // int array, we can call the PreparedStatement to UPDATE the DB
@@ -198,26 +206,27 @@ public abstract class Person {
     // Method to validate bills and control the flow using a customized exception
     // Only positive values of int will be accepted
     public int validateBillsInput(int input) throws ExitException {
-        while (true) {
-            try {
-                if (input == -1) {
-                    // Not sure if this would get the flow of the
-                    // program back to OpMenu
-                    throw new ExitException("User chose to back");
-                }
-                if (input < 0) {
-                    System.err.println("The number must be non-negative");
-                } else {
-                    return input;
-                }
-            } catch (NullPointerException nullPointerException) {
-                System.err.println("Unexpected error while prompting for bills");
-                nullPointerException.printStackTrace();
-            } catch (InputMismatchException inputMismatchException) {
-                System.err.println("Invalid input. Please enter a valid number");
-                inputMismatchException.printStackTrace();
+        try {
+            if (input == -1) {
+                // Not sure if this would get the flow of the
+                // program back to OpMenu
+                throw new ExitException("User chose to back");
             }
+            if (input < 0) {
+                System.err.println("The number must be non-negative");
+                // Recursion to keep asking until a valid input is given :D
+                return validateBillsInput(ScannerCreator.nextInt());
+            } else {
+                return input;
+            }
+        } catch (NullPointerException nullPointerException) {
+            System.err.println("Unexpected error while prompting for bills");
+            nullPointerException.printStackTrace();
+        } catch (InputMismatchException inputMismatchException) {
+            System.err.println("Invalid input. Please enter a valid number");
+            inputMismatchException.printStackTrace();
         }
+        return 0;
     }
     // Method to print the information of one or more accounts of the client
     private void printBalance(String inputDNI) {
@@ -227,18 +236,28 @@ public abstract class Person {
             ResultSet resultSet = JDBCPostgresSQL.getAccount(inputDNI);
 
             String accountDNI = resultSet.getString("dni_titular");
+            // We need to do this in order to not keep one tuple and get less
+            // information. And if we were to not do it like this, and call
+            // ResultSet.previous() on the JDBC method, we would not get the
+            // getString() information (pointing to null)
+            resultSet.previous();
             int accountNumber;
             int balance;
+            int total = 0;
 
             System.out.println("------ ACCOUNT INFORMATION ------");
-            System.out.println("|         DNI: " + accountDNI + "          |");
-            while(resultSet.next()) {
+            System.out.println("|         DNI: " + accountDNI + "        |");
+            System.out.println("---------------------------------");
+            while (resultSet.next()) {
                 accountNumber = resultSet.getInt("numero");
                 balance = resultSet.getInt("saldo");
                 System.out.println("|       Account Number: " + accountNumber + "       |");
                 System.out.println("|         Balance: " + balance + "         |");
+                total += balance;
             }
-            System.out.println("------ ACCOUNT INFORMATION ------");
+            System.out.println("---------------------------------");
+            System.out.println("|          Total: " + total + "          |");
+            System.out.println("------ ACCOUNT INFORMATION ------\n");
             resultSet.close();
         } catch (SQLException sqlException) {
             System.err.println("Error reading account balance ResultSet");

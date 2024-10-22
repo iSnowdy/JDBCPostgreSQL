@@ -4,9 +4,10 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 
 public class LoginMenu {
-    private int choice;
 
-    public LoginMenu() {}
+    public LoginMenu() {
+        printLoginMenu();
+    }
 
     public void printLoginMenu() {
         final String menu =
@@ -17,22 +18,20 @@ public class LoginMenu {
         "---------------------------------------------\n";
         String DNI;
         String pin;
-        boolean cycle = true;
         // Keeps asking for the client's DNI and pin until a ResultSet
         // is returned (until it is found)
-        while (cycle) {
-            int counter = 3;
+        int counter = 3;
+        while (counter > 0) {
             System.out.println(menu);
             DNI = promptDNI();
             pin = promptPIN();
 
-            ResultSet resultSet = null;
-            resultSet = JDBCPostgresSQL.getPerson(DNI, pin);
+            ResultSet resultSet = JDBCPostgresSQL.getPerson(DNI, pin);
 
             try {
-                if (resultSet.next()) {
+                if (resultSet != null && resultSet.next()) {
                     String type = resultSet.getString("type");
-                    String name = resultSet.getString("name");
+                    String name = resultSet.getString("nombre");
 
                     if (type.equals("cliente")) {
                         // Client logic
@@ -41,11 +40,11 @@ public class LoginMenu {
                         // Employee logic
                         OpMenu opMenu = new OpMenu(DNI, pin, name, Rol.E);
                     }
-                    System.out.println("Login successful! Welcome");
-                    cycle = false;
-                } else if (resultSet == null) {
+                    // Not really needed because the flow will be directed to OpMenu
+                } else {
+                    counter--;
                     System.out.println("Invalid DNI or pin. Please try again.\n" +
-                            "You have " + counter-- + " attempts left");
+                            "You have " + counter + " attempts left");
                 }
             } catch (SQLException sqlException) {
                 System.err.println("Fatal error while trying to login");
@@ -55,7 +54,6 @@ public class LoginMenu {
             if (counter == 0) {
                 System.out.println("You have exhausted your attempts. Please try again later");
                 System.out.println("Shutting down the application...");
-                cycle = false;
                 System.exit(-1);
             }
         }
