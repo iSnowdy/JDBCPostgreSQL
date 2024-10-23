@@ -21,7 +21,7 @@ public class Employee extends Person implements EmpOps {
         String answer;
         int originAccount;
         int destinationAccount;
-        int amountToTransfer = 0;
+        int amountToTransfer;
 
         System.out.println("Initializing Transfer Operation (Employee)...");
 
@@ -35,6 +35,7 @@ public class Employee extends Person implements EmpOps {
             if (JDBCPostgresSQL.getAccount(originAccount) == null ||
                     JDBCPostgresSQL.getAccount(destinationAccount) == null) {
                 System.out.println("One of the accounts provided does not exist. Would you like to try again? (Y/n)");
+                ScannerCreator.nextLine();
                 answer = ScannerCreator.nextLine();
                 if (answer.equalsIgnoreCase("n")) {
                     System.out.println("Returning to the main menu...");
@@ -86,7 +87,7 @@ public class Employee extends Person implements EmpOps {
         } while (!(this.validateATM(addressATM, cityATM)));
         // Call to Person method to prompt for bills
         // Not implemented in Client / Employee as to not repeat code twice
-        this.promptBills(addressATM, cityATM);
+        this.promptBills(addressATM, cityATM, -1);
     }
     // Insert to the database. Asks the user for the information, validates that
     // the client does not exist and then inserts it

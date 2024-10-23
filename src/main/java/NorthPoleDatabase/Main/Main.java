@@ -11,7 +11,7 @@ public class Main {
         String dbname;
 
         System.out.println("Starting JDBC Driver...");
-        System.out.println("Please provide the following information: ");
+        System.out.println("Please provide the following information");
 
         System.out.print("Username: ");
         //username = ScannerCreator.nextLine(); // postgres
@@ -49,9 +49,15 @@ List of things 'working':
     5. Operation Menu Type Employee: Delete Client
     6. Operation Menu Type Employee: Add Account
     7. Operation Menu Type Employee: Transaction
-    8. Operation Menu Type Employee:
-    9. Operation Menu Type Employee:
+    8. Operation Menu Type Employee: Check Balance
+    9. Operation Menu Type Employee: Change PIN
     10. Operation Menu Type Employee: Exit
+    11. Operation Menu Type Client: Check Balance
+    12. Operation Menu Type Client: Change PIN
+    13. Operation Menu Type Client: Transaction
+    14. Operation Menu Type Client: Exit
+    15. Operation Menu Type Client: Withdraw Money
+    16. Operation Menu Type Client: Deposit Money?
 
 Others:
 
@@ -64,6 +70,11 @@ Things to improve/implement:
 
     - Inside the DELETE ACCOUNT method, build a logic
     to, if the client has more than one account,
-    ask which of the accounts they wish to delete
+    ask which one of the accounts they wish to delete
+
+Questions:
+
+    - Change printStrackTrace() ?
+    - Deposit Money. Transaction inside a transaction?
 
  */

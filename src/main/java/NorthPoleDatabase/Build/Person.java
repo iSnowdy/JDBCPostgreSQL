@@ -178,28 +178,66 @@ public abstract class Person {
     // and the same time validate that input. If the user wants to stop the
     // flow of the program, writing 'exit' will throw a customized exception
     // that will cascade to the main menu (hopefully)
-    public int[] promptBills(String addressATM, String cityATM) throws ExitException {
+    public int[] promptBills(String addressATM, String cityATM, int account) throws ExitException {
         System.out.println("Now, you will be prompted how many of each bill do you want to deposit/withdraw");
         System.out.println("If, at any point, you would like to go back, type -1");
         // Prompts the user and at the same time validates it to make sure
         // we do not get an invalid input and pass it to the SQL Query
+        int totalAmount = 0;
         try {
+            // Envelope this in a transaction. I do this because we are updating two things at once:
+            // the ATM and the client's account (assuming it is not a transaction use for this method).
+            // So if one of those is not properly completed, we do not want the other one to complete
+            JDBCPostgresSQL.getConnection().setAutoCommit(false);
+
             System.out.print("5€ bills: ");
             this.bills[0] = this.validateBillsInput(ScannerCreator.nextInt());
+            totalAmount += bills[0] * 5;
             System.out.print("10€ bills: ");
             this.bills[1] = this.validateBillsInput(ScannerCreator.nextInt());
+            totalAmount += bills[1] * 10;
             System.out.print("20€ bills: ");
             this.bills[2] = this.validateBillsInput(ScannerCreator.nextInt());
+            totalAmount += bills[2] * 20;
             System.out.print("50€ bills: ");
             this.bills[3] = this.validateBillsInput(ScannerCreator.nextInt());
+            totalAmount += bills[3] * 50;
+
+            // -1 is the code that says it is an employee who is doing the transaction
+            // otherwise it is a client and we also need to UPDATE the client's account
+            // to deposit the money
+            // Consider changing this. Kinda dirty
+            if (account != -1) JDBCPostgresSQL.depositToAccount(account, totalAmount);
+
             // Now that we have a valid input by the user stored in an
             // int array, we can call the PreparedStatement to UPDATE the DB
             JDBCPostgresSQL.updateATM(this.bills, addressATM, cityATM);
+
+            // Finalize the transaction
+
+            JDBCPostgresSQL.getConnection().commit();
+            JDBCPostgresSQL.getConnection().setAutoCommit(true);
         } catch (ExitException exitException) {
+            try {
+                JDBCPostgresSQL.getConnection().rollback();
+            } catch (SQLException sqlException) {
+                System.err.println("Error during rollback");
+            }
             System.out.println("Exiting operation. Returning to the main menu...");
         } catch (SQLException sqlException) {
+            try {
+                JDBCPostgresSQL.getConnection().rollback();
+            } catch (SQLException sqlException1) {
+                System.err.println("Error during rollback");
+            }
             System.err.println("Error while trying to update the ATM. Returning to the main menu...");
             sqlException.printStackTrace();
+        } finally {
+            try {
+                JDBCPostgresSQL.getConnection().setAutoCommit(true);
+            } catch (SQLException sqlException) {
+                System.err.println("Failure to set auto-commit back to true");
+            }
         }
         return this.getBills();
     }
@@ -229,7 +267,7 @@ public abstract class Person {
         return 0;
     }
     // Method to print the information of one or more accounts of the client
-    private void printBalance(String inputDNI) {
+    protected void printBalance(String inputDNI) {
         // Call to the client's DNI ResultSet and then call to check get the
         // account using the
         try {

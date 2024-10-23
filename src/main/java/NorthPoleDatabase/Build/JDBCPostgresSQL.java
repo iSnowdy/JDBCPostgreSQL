@@ -231,6 +231,7 @@ public class JDBCPostgresSQL {
             sqlException.printStackTrace();
             return null;
         }
+
     }
     // Method to return the number of tuples if a client's bank
     public static int accountAmount(String DNI) {
@@ -242,9 +243,15 @@ public class JDBCPostgresSQL {
             PreparedStatement preparedStatement = connection.prepareStatement(preparedStatementSQL);
             preparedStatement.setString(1, DNI);
 
-            int tuplesAmount = preparedStatement.executeQuery().getInt("count");
+            ResultSet resultSet = preparedStatement.executeQuery();
+            int tuplesAmount = resultSet.next() ? resultSet.getInt(1) : 0;
             preparedStatement.close();
-            return tuplesAmount;
+            if (tuplesAmount > 0) {
+                return tuplesAmount;
+            } else {
+                System.out.println("The provided client has no accounts to their name");
+                return 0;
+            }
         } catch (SQLException sqlException) {
             System.err.println("Error getting account amount from PostgresSQL");
             sqlException.printStackTrace();
@@ -327,7 +334,7 @@ public class JDBCPostgresSQL {
     public static void updateAccounts(int originAccount, int amountToTransfer) {
         updateAccounts(originAccount, -1, amountToTransfer);
     }
-
+    // This method will handle: employee's transactions between 2 accounts and client transactions
     public static void updateAccounts(int originAccount, int destinationAccount, int amountToTransfer) {
         try {
             // Envelope the UPDATE in a Transaction
@@ -391,6 +398,83 @@ public class JDBCPostgresSQL {
         }
     }
 
+    public static void depositToAccount(int account, int amount) {
+        try {
+            connection.setAutoCommit(false);
+
+            String preparedStatementSQL =
+                    "UPDATE cuentas " +
+                    "SET saldo = saldo + ? " +
+                    "WHERE numero = ?";
+
+            PreparedStatement preparedStatement = connection.prepareStatement(preparedStatementSQL);
+            preparedStatement.setInt(1, amount);
+            preparedStatement.setInt(2, account);
+
+            tuplesAffected = 0;
+            tuplesAffected = preparedStatement.executeUpdate();
+            preparedStatement.close();
+
+            if (tuplesAffected > 0) {
+                connection.commit();
+                System.out.println("The deposit of " + amount + "€ to the account number " + account +
+                        " was successful");
+            } else {
+                connection.rollback();
+                System.out.println("Failed to deposit to the account number provided");
+            }
+        } catch (SQLException sqlException) {
+            try {
+                connection.rollback();
+                System.err.println("Error while trying to make a deposit");
+                sqlException.printStackTrace();
+            } catch (SQLException sqlException2) {
+                System.err.println("Error during rollback");
+            }
+        } finally {
+            try {
+                connection.setAutoCommit(true);
+            } catch (SQLException sqlException) {
+                System.err.println("Failure to set auto-commit back to true");
+                sqlException.printStackTrace();
+            }
+        }
+    }
+    // Method that checks if a client has enough balance to perform a withdrawal operation
+    public static boolean checkBalance(String DNI, int account, int amount) {
+        try {
+            String preparedStatementSQL =
+                    "SELECT * FROM cuentas " +
+                    "WHERE numero = ? AND dni_titular = " +
+                        "(SELECT dni FROM clientes " +
+                        " WHERE dni = ?)";
+
+            PreparedStatement preparedStatement = connection.prepareStatement(preparedStatementSQL);
+            preparedStatement.setInt(1, account);
+            preparedStatement.setString(2, DNI);
+
+            ResultSet resultSet = preparedStatement.executeQuery();
+
+            if (resultSet.next()) {
+                if (resultSet.getInt("saldo") > amount) {
+                    System.out.println("Withdrawal operation accepted. Enough credit is available");
+                    System.out.println("Proceding to withdraw " + amount + "€. Please wait...");
+                    resultSet.close();
+                    return true;
+                }
+            } else {
+                System.out.println("Error while performing the operation. Exiting...");
+                resultSet.close();
+                return false;
+            }
+        } catch (SQLException sqlException) {
+            System.err.println("Error while trying to check balance");
+            sqlException.printStackTrace();
+            return false;
+        }
+        return false;
+    }
+
     public static boolean updatePIN(String DNI, String pin) {
         try {
             connection.setAutoCommit(false);
@@ -401,11 +485,9 @@ public class JDBCPostgresSQL {
                     "WHERE dni = ?";
 
             PreparedStatement preparedStatement = connection.prepareStatement(preparedStatementSQL);
-            preparedStatement.setString(1, DNI);
-            preparedStatement.setString(2, pin);
+            preparedStatement.setString(1, pin);
+            preparedStatement.setString(2, DNI);
 
-            System.out.println("Inside the SQL method. The given pin is : " + pin + " and it has " +
-                    pin.length() + " characters");
             tuplesAffected = 0;
             tuplesAffected = preparedStatement.executeUpdate();
             preparedStatement.close();
@@ -588,5 +670,9 @@ public class JDBCPostgresSQL {
                 sqlException.printStackTrace();
             }
         }
+    }
+
+    public static Connection getConnection() {
+        return connection;
     }
 }
