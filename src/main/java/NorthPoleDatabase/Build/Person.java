@@ -207,16 +207,16 @@ public abstract class Person {
             // otherwise it is a client and we also need to UPDATE the client's account
             // to deposit the money
             // Consider changing this. Kinda dirty
-            if (account != -1) JDBCPostgresSQL.depositToAccount(account, totalAmount);
-
+            if (account != -1) {
+                JDBCPostgresSQL.depositToAccount(account, totalAmount);
+                JDBCPostgresSQL.updateATM(this.bills, addressATM, cityATM);
+                return this.getBills(); // Exists the method preemptively
+                // Finalize the transaction inside the updateATM method
+                // So no need to change it here. Also avoids transaction conflict
+            }
             // Now that we have a valid input by the user stored in an
             // int array, we can call the PreparedStatement to UPDATE the DB
             JDBCPostgresSQL.updateATM(this.bills, addressATM, cityATM);
-
-            // Finalize the transaction
-
-            JDBCPostgresSQL.getConnection().commit();
-            JDBCPostgresSQL.getConnection().setAutoCommit(true);
         } catch (ExitException exitException) {
             try {
                 JDBCPostgresSQL.getConnection().rollback();

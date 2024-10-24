@@ -2,6 +2,7 @@ package NorthPoleDatabase.Build;
 
 // https://www.w3api.com/Java/InputMismatchException/
 
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.InputMismatchException;
 
@@ -228,6 +229,7 @@ public class Employee extends Person implements EmpOps {
         boolean validClient = false;
         String answer;
         String DNI;
+        int accountToDelete = 0;
 
         System.out.println("Initializing Account Deletion Operation...");
 
@@ -249,7 +251,22 @@ public class Employee extends Person implements EmpOps {
                 System.out.println("DNI: " + DNI);
                 answer = ScannerCreator.nextLine();
                 if (answer.isEmpty() || answer.equalsIgnoreCase("y")) {
-                    JDBCPostgresSQL.deleteAccount(DNI);
+                    printBalance(DNI);
+
+                    int numberOfAccounts = JDBCPostgresSQL.accountAmount(DNI);
+                    if (numberOfAccounts > 1) {
+                        System.out.println("Please choose which account to delete: ");
+                        accountToDelete = ScannerCreator.nextInt();
+                    } else {
+                        try {
+                            ResultSet resultSet = JDBCPostgresSQL.getAccount(DNI);
+                            accountToDelete = resultSet.getInt("numero");
+                        } catch (SQLException sqlException) {
+                            System.err.println("Error accessing the ResultSet " +
+                                    "for deletion of account " + DNI);
+                        }
+                    }
+                    JDBCPostgresSQL.deleteAccount(DNI, accountToDelete);
                     validClient = true;
                 } else if (answer.equalsIgnoreCase("n")) {
                     System.out.println("Returning to the main menu...");

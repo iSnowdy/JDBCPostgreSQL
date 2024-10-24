@@ -399,9 +399,9 @@ public class JDBCPostgresSQL {
     }
 
     public static void depositToAccount(int account, int amount) {
+        // No transaction here because the method that calls it already
+        // has a transaction in it
         try {
-            connection.setAutoCommit(false);
-
             String preparedStatementSQL =
                     "UPDATE cuentas " +
                     "SET saldo = saldo + ? " +
@@ -416,28 +416,14 @@ public class JDBCPostgresSQL {
             preparedStatement.close();
 
             if (tuplesAffected > 0) {
-                connection.commit();
                 System.out.println("The deposit of " + amount + "€ to the account number " + account +
                         " was successful");
             } else {
-                connection.rollback();
                 System.out.println("Failed to deposit to the account number provided");
             }
         } catch (SQLException sqlException) {
-            try {
-                connection.rollback();
                 System.err.println("Error while trying to make a deposit");
                 sqlException.printStackTrace();
-            } catch (SQLException sqlException2) {
-                System.err.println("Error during rollback");
-            }
-        } finally {
-            try {
-                connection.setAutoCommit(true);
-            } catch (SQLException sqlException) {
-                System.err.println("Failure to set auto-commit back to true");
-                sqlException.printStackTrace();
-            }
         }
     }
     // Method that checks if a client has enough balance to perform a withdrawal operation
@@ -632,7 +618,7 @@ public class JDBCPostgresSQL {
         }
     }
 
-    public static void deleteAccount(String DNI) {
+    /*public static void deleteAccount(String DNI) {
         try {
             connection.setAutoCommit(false);
             String preparedStatementSQL =
@@ -657,6 +643,43 @@ public class JDBCPostgresSQL {
         } catch (SQLException sqlException) {
             try {
                 System.err.println("Error deleting account from PostgresSQL");
+                sqlException.printStackTrace();
+                connection.rollback();
+            } catch (SQLException sqlException2) {
+                System.err.println("Error during rollback");
+            }
+        } finally {
+            try {
+                connection.setAutoCommit(true);
+            } catch (SQLException sqlException) {
+                System.err.println("Failure to set auto-commit back to true");
+                sqlException.printStackTrace();
+            }
+        }
+    }*/
+
+    public static void deleteAccount(String DNI, int account) {
+        try {
+            connection.setAutoCommit(false);
+            CallableStatement callableStatement = connection.prepareCall("CALL delete_Accounts(?, ?)");
+            callableStatement.setString(1, DNI);
+            callableStatement.setInt(2, account);
+
+            callableStatement.executeUpdate();
+
+            System.out.println("The account number " + account + " for the DNI " + DNI
+                    + " has been successfully deleted");
+
+            try {
+                connection.commit();
+                connection.setAutoCommit(true);
+            } catch (SQLException sqlException ) {
+                System.err.println("Commit failed");
+                connection.rollback();
+            }
+        } catch (SQLException sqlException) {
+            try {
+                System.err.println("Error deleting account using the stored procedure from PostgresSQL");
                 sqlException.printStackTrace();
                 connection.rollback();
             } catch (SQLException sqlException2) {
