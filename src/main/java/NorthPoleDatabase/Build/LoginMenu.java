@@ -32,7 +32,7 @@ public class LoginMenu {
                 if (resultSet != null && resultSet.next()) {
                     String type = resultSet.getString("type");
                     String name = resultSet.getString("nombre");
-
+                    // Moves the flow of the program to the main menu
                     if (type.equals("cliente")) {
                         // Client logic
                         OpMenu opMenu = new OpMenu(DNI, pin, name, Rol.C);

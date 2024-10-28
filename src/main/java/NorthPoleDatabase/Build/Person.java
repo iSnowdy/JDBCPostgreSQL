@@ -165,8 +165,8 @@ public abstract class Person {
     }
 
     public boolean validateATM(String address, String city) {
-            // This static method returns true if any information at all is returned with
-            // a SELECT using the given parameters
+        // This method returns true if any information at all is returned with
+        // a SELECT using the given parameters
         if (JDBCPostgresSQL.getATM(address, city) == null) {
             System.out.println("Invalid address or city. Please try again...");
             System.out.println("If you want to exit the operation, please type EXIT");
@@ -311,17 +311,6 @@ public abstract class Person {
     }
 
     // Getters and Setters
-    public String getPin() {
-        return pin;
-    }
-    public void setPin(String pin) {
-        this.pin = pin;
-    }
-
-    public String getName() {
-        return name;
-    }
-
     public String getDNI() {
         return DNI;
     }

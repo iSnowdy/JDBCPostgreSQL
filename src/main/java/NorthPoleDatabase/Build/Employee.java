@@ -9,6 +9,8 @@ import java.util.InputMismatchException;
 public class Employee extends Person implements EmpOps {
     // ENUM for rol
     private Rol rol;
+    private String addressATM;
+    private String cityATM;
 
     public Employee(String DNI, String name, String pin) {
         super(DNI, name, pin);
@@ -71,24 +73,11 @@ public class Employee extends Person implements EmpOps {
     // validate user input before updating the ATM
     @Override
     public void refillBank() throws ExitException {
-
-        String addressATM;
-        String cityATM;
         // Handle weird inputs
         System.out.println("Initializing Refill Bank operation...");
-        // First of all, we need to know which ATM are we updating
-        do {
-            System.out.println("Please write the address of the ATM you wish to access: ");
-            addressATM = ScannerCreator.nextLine();
-            if (addressATM.equalsIgnoreCase("exit")) {
-                throw new ExitException("User chose to exit");
-            }
-            System.out.println("Please write the city of the ATM you wish to access: ");
-            cityATM = ScannerCreator.nextLine();
-        } while (!(this.validateATM(addressATM, cityATM)));
         // Call to Person method to prompt for bills
         // Not implemented in Client / Employee as to not repeat code twice
-        this.promptBills(addressATM, cityATM, -1);
+        this.promptBills(this.addressATM, this.cityATM, -1);
     }
     // Insert to the database. Asks the user for the information, validates that
     // the client does not exist and then inserts it
@@ -285,6 +274,14 @@ public class Employee extends Person implements EmpOps {
         // 4 digit value between the range of (1000, 9999)
         return String.valueOf((int)(Math.random() * 9000) + 1000);
     }
+
+    public void setAddressATM(String addressATM) {
+        this.addressATM = addressATM;
+    }
+    public void setCityATM(String cityATM) {
+        this.cityATM = cityATM;
+    }
+
     @Override
     public String toString() {
         String information = super.toString();

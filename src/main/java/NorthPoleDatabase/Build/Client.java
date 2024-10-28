@@ -6,6 +6,8 @@ import java.sql.SQLException;
 public class Client extends Person implements ClientOps {
     // ENUM for rol
     private Rol rol;
+    private String addressATM;
+    private String cityATM;
 
     public Client(String DNI, String name, String pin) {
         super(DNI, name, pin);
@@ -83,28 +85,15 @@ public class Client extends Person implements ClientOps {
     // Interface methods
     @Override
     public void withdrawMoney() throws ExitException {
-        String addressATM;
-        String cityATM;
-
         boolean validAccounts = false;
         String answer;
-        int originAccount = 0;
-        int destinationAccount = 0;
-        int withdrawAmount = 0;
+        int originAccount;
+        int withdrawAmount;
 
         System.out.println("Initializing Withdraw Operation (Client)...");
         while (!validAccounts) {
             System.out.println("Please provide the following information");
             // First, validate the ATM that the client is working with
-            do {
-                System.out.println("Please write the address of the ATM you wish to access: ");
-                addressATM = ScannerCreator.nextLine();
-                if (addressATM.equalsIgnoreCase("exit")) {
-                    throw new ExitException("User chose to exit");
-                }
-                System.out.println("Please write the city of the ATM you wish to access: ");
-                cityATM = ScannerCreator.nextLine();
-            } while (!(this.validateATM(addressATM, cityATM)));
             // Second, ask for the amount to withdraw and check if that is indeed possible
             // The account number here will be overwritten if the client has more than one
             // account to their name. I chose to follow this flow in order to not summon another
@@ -114,7 +103,7 @@ public class Client extends Person implements ClientOps {
                 printBalance(this.getDNI());
 
                 ResultSet resultSetClient = JDBCPostgresSQL.getAccount(this.getDNI());
-                ResultSet resultSetATM = JDBCPostgresSQL.getATM(addressATM, cityATM);
+                ResultSet resultSetATM = JDBCPostgresSQL.getATM(this.addressATM, this.cityATM);
 
                 do {
                     System.out.print("Type in the amount you want to withdraw: ");
@@ -160,7 +149,7 @@ public class Client extends Person implements ClientOps {
                     // account. Final confirmation is if they have enough balance to finalize the
                     // operation
                     if (JDBCPostgresSQL.checkBalance(this.getDNI(), originAccount, withdrawAmount)) {
-                        JDBCPostgresSQL.updateATM(billsToWithdraw, addressATM, cityATM);
+                        JDBCPostgresSQL.updateATM(billsToWithdraw, this.addressATM, this.cityATM);
                         JDBCPostgresSQL.updateAccounts(originAccount, withdrawAmount);
                         validAccounts = true;
                     } else {
@@ -191,25 +180,11 @@ public class Client extends Person implements ClientOps {
     //
     @Override
     public void depositMoney() throws ExitException {
-        String addressATM;
-        String cityATM;
-
-        boolean validAccounts = false;
         String answer;
         int withdrawAccount = 0;
 
         System.out.println("Initializing Deposit Operation...");
         System.out.println("Please provide the following information");
-
-        do {
-            System.out.println("Please write the address of the ATM you wish to access: ");
-            addressATM = ScannerCreator.nextLine();
-            if (addressATM.equalsIgnoreCase("exit")) {
-                throw new ExitException("User chose to exit");
-            }
-            System.out.println("Please write the city of the ATM you wish to access: ");
-            cityATM = ScannerCreator.nextLine();
-        } while (!(this.validateATM(addressATM, cityATM)));
 
         int numberOfAccounts = JDBCPostgresSQL.accountAmount(this.getDNI());
 
@@ -241,7 +216,7 @@ public class Client extends Person implements ClientOps {
             // Call to Person method to prompt for bills
             // Not implemented in Client / Employee as to not repeat code twice
             // The method will also UPDATE the DB for the ATM and the client
-            promptBills(addressATM, cityATM, withdrawAccount);
+            promptBills(this.addressATM, this.cityATM, withdrawAccount);
 
         }
     }
@@ -313,6 +288,14 @@ public class Client extends Person implements ClientOps {
         }
         return billsAmount;
     }
+
+    public void setAddressATM(String addressATM) {
+        this.addressATM = addressATM;
+    }
+    public void setCityATM(String cityATM) {
+        this.cityATM = cityATM;
+    }
+
     @Override
     public String toString() {
         String information = super.toString();

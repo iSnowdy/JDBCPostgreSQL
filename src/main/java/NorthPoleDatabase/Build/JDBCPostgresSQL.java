@@ -18,10 +18,10 @@ public class JDBCPostgresSQL {
     private static Connection connection;
     // To store the return number of tuples affected after a SQL query
     // public access just in case we want to verify from outside the class
-    public static int tuplesAffected;
+    public static int tuplesAffected; // Make it not static
 
     // localhost constructor
-    public JDBCPostgresSQL(String USERNAME, String PASSWORD, String DBNAME) {
+    public JDBCPostgresSQL(String USERNAME, String PASSWORD, String DBNAME) throws SQLException {
         this.USERNAME = USERNAME;
         this.PASSWORD = PASSWORD;
         this.DBNAME = DBNAME;
@@ -34,7 +34,7 @@ public class JDBCPostgresSQL {
     }
 
     // HOST constructor
-    public JDBCPostgresSQL(String USERNAME, String PASSWORD, String HOST, String DBNAME) {
+    public JDBCPostgresSQL(String USERNAME, String PASSWORD, String HOST, String DBNAME) throws SQLException {
         this.USERNAME = USERNAME;
         this.PASSWORD = PASSWORD;
         this.DBNAME = DBNAME;
@@ -54,6 +54,7 @@ public class JDBCPostgresSQL {
         } catch (SQLException sqlException) {
             System.err.println("Error connecting to PostgresSQL");
             sqlException.printStackTrace();
+            System.exit(1);
         }
     }
 
@@ -65,6 +66,7 @@ public class JDBCPostgresSQL {
         } catch (SQLException sqlException) {
             System.err.println("Error connecting to PostgresSQL");
             sqlException.printStackTrace();
+            System.exit(1);
         }
     }
 
@@ -100,27 +102,6 @@ public class JDBCPostgresSQL {
     // pSt.executeUpdate() == INSERT, UPDATE, DELETE
 
     // SELECT
-
-    public static ResultSet getEmployee(String DNI) {
-        try {
-            String preparedStatementSQL =
-                    "SELECT * FROM empleados " +
-                    "WHERE DNI = ?";
-            PreparedStatement preparedStatement = connection.prepareStatement(preparedStatementSQL);
-            preparedStatement.setString(1, DNI);
-
-            ResultSet resultSet = preparedStatement.executeQuery();
-
-            // If we don't have a single register, then the client does not exist
-            if (!resultSet.next()) return null;
-            // Otherwise, return the ResultSet of the query
-            return resultSet;
-        } catch (SQLException sqlException) {
-            System.err.println("Error getting employee from PostgresSQL");
-            sqlException.printStackTrace();
-            return null;
-        }
-    }
 
     // Search for a client. Only need DNI because the name and PIn
     // in reality can be repeated; which is not the case for DNI (PK)
@@ -256,6 +237,50 @@ public class JDBCPostgresSQL {
             System.err.println("Error getting account amount from PostgresSQL");
             sqlException.printStackTrace();
             return 0;
+        }
+    }
+
+    public static ResultSet getAllATM() {
+        try {
+            String preparedStatementSQL =
+                    "SELECT * FROM cajeros ORDER BY id";
+
+            PreparedStatement preparedStatement = connection.prepareStatement(
+                    preparedStatementSQL,
+                    ResultSet.TYPE_SCROLL_INSENSITIVE,
+                    ResultSet.CONCUR_READ_ONLY);
+            ResultSet resultSet = preparedStatement.executeQuery();
+
+            if (!resultSet.next()) return null;
+            return resultSet;
+        } catch (SQLException sqlException) {
+            System.err.println("Error getting all ATM's from PostgresSQL");
+            sqlException.printStackTrace();
+            return null;
+        }
+    }
+
+    public static ResultSet getATM(int choice) {
+        try {
+            String preparedStatementSQL =
+                    "SELECT * FROM cajeros " +
+                    "WHERE id = ?";
+
+            PreparedStatement preparedStatement = connection.prepareStatement(
+                    preparedStatementSQL,
+                    ResultSet.TYPE_SCROLL_INSENSITIVE,
+                    ResultSet.CONCUR_READ_ONLY);
+
+            preparedStatement.setInt(1, choice);
+
+            ResultSet resultSet = preparedStatement.executeQuery();
+
+            if (!resultSet.next()) return null;
+            return resultSet;
+        } catch (SQLException sqlException) {
+            System.err.println("Error getting ATM from PostgresSQL");
+            sqlException.printStackTrace();
+            return null;
         }
     }
 

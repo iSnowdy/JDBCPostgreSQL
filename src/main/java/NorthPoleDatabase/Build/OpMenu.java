@@ -28,6 +28,17 @@ public class OpMenu {
             case E -> this.userEmployee = new Employee(this.DNI, this.pin, this.name);
         }
         System.out.println("Welcome " + this.name + "!");
+        boolean validATM = false;
+
+        do {
+            validATM = printATMs();
+            if (!validATM) {
+                System.out.println("In order to continue, you must choose a valid ATM");
+            }
+        } while (!validATM);
+
+
+
         promptUser();
     }
 
@@ -37,13 +48,13 @@ public class OpMenu {
             this.choice = ScannerCreator.nextInt();
 
             if (rol == Rol.C) {
-                while (!(1 <= this.choice && this.choice <= 6)) {
+                while (!(1 <= this.choice && this.choice <= 7)) {
                     System.out.println("Please select a valid option");
                     choice = ScannerCreator.nextInt();
                 }
                 clientSwitch();
             } else if (rol == Rol.E) {
-                while (!(1 <= this.choice && this.choice <= 9)) {
+                while (!(1 <= this.choice && this.choice <= 10)) {
                     System.out.println("Please select a valid option");
                     choice = ScannerCreator.nextInt();
                 }
@@ -61,7 +72,6 @@ public class OpMenu {
             case E -> printEmployeeMenu();
         }
     }
-
     // Employee's exclusive menu
     private void printEmployeeMenu() {
         System.out.println("=============================================");
@@ -75,10 +85,10 @@ public class OpMenu {
         System.out.println("|              6. Transaction               |");
         System.out.println("|              7. Check Balance             |");
         System.out.println("|              8. Change PIN                |");
-        System.out.println("|              9. Exit                      |");
+        System.out.println("|              9. Change working ATM        |");
+        System.out.println("|             10. Exit                      |");
         System.out.println("=============================================\n");
     }
-
     // Client's exclusive menu
     private void printClientMenu() {
         System.out.println("=============================================");
@@ -89,7 +99,8 @@ public class OpMenu {
         System.out.println("|              3. Transaction               |");
         System.out.println("|              4. Check Balance             |");
         System.out.println("|              5. Change PIN                |");
-        System.out.println("|              6. Exit                      |");
+        System.out.println("|              6. Change working ATM        |");
+        System.out.println("|              7. Exit                      |");
         System.out.println("=============================================\n");
     }
     // Every time we enter the switch, the Scanner buffer must be cleansed
@@ -107,49 +118,47 @@ public class OpMenu {
                 case 2 -> {
                     // Add client logic
                     this.userEmployee.addClient();
-                    // Always bring the user back to the main menu
                     promptUser();
                 }
                 case 3 -> {
                     // Delete client logic
                     this.userEmployee.deleteClient();
-                    // Always bring the user back to the main menu
                     promptUser();
                 }
                 case 4 -> {
                     // Add account logic
                     this.userEmployee.addAccount();
-                    // Always bring the user back to the main menu
                     promptUser();
                 }
                 case 5 -> {
                     // Delete account logic
                     this.userEmployee.deleteAccount();
-                    // Always bring the user back to the main menu
                     promptUser();
                 }
                 case 6 -> {
                     // Transaction logic
                     this.userEmployee.makeTransfer();
-                    // Always bring the user back to the main menu
                     promptUser();
                 }
                 case 7 -> {
                     // Check balance logic
                     this.userEmployee.checkBalance();
-                    // Always bring the user back to the main menu
                     promptUser();
                 }
                 case 8 -> {
                     // Change PIN logic
                     this.userEmployee.changePIN();
-                    // Always bring the user back to the main menu
                     promptUser();
                 }
                 case 9 -> {
+                    // Change the address/city of the ATM
+                    printATMs();
+                    promptUser();
+                }
+                case 10 -> {
                     System.out.println("Goodbye " + this.name + "!");
                     JDBCPostgresSQL.disconnect();
-                    System.exit(0);
+                    System.exit(0); // Correct finalization
                 }
             }
         } catch (ExitException exitException) {
@@ -171,36 +180,117 @@ public class OpMenu {
                 case 2 -> {
                     // Withdraw logic
                     this.userClient.withdrawMoney();
-                    // Always bring the user back to the main menu
                     promptUser();
                 }
                 case 3 -> {
                     // Transaction logic
                     this.userClient.makeTransfer();
-                    // Always bring the user back to the main menu
                     promptUser();
                 }
                 case 4 -> {
                     // Check balance logic
                     this.userClient.checkBalance();
-                    // Always bring the user back to the main menu
                     promptUser();
                 }
                 case 5 -> {
                     // Change PIN logic
                     this.userClient.changePIN();
-                    // Always bring the user back to the main menu
                     promptUser();
                 }
                 case 6 -> {
+                    // Change the address/city of the ATM
+                    printATMs();
+                    promptUser();
+                }
+                case 7 -> {
                     System.out.println("Goodbye " + this.name + "!");
                     JDBCPostgresSQL.disconnect();
-                    System.exit(0);
+                    System.exit(0); // Correct finalization
                 }
             }
         } catch (ExitException exitException) {
             System.out.println("Welcome back to the Operation Menu...");
             promptUser();
+        }
+    }
+
+    private boolean printATMs() {
+        try {
+            String addressATM;
+            String cityATM;
+            int id;
+            int choice;
+
+            var resultSet = JDBCPostgresSQL.getAllATM();
+            resultSet.previous();
+
+            System.out.println();
+            do {
+                System.out.println("----------------- ATM COLLECTION -----------------");
+                System.out.println("Please choose the ATM you wish to work with");
+                System.out.println("To do so, provide the ID number of the ATM");
+                System.out.println("--------------------------------------------------");
+                System.out.println("|ID" + "              " + "Address" + "               " + "City      |");
+
+                while (resultSet.next()) {
+                    id = resultSet.getInt("id");
+                    addressATM = resultSet.getString("direccion");
+                    cityATM = resultSet.getString("poblacion");
+
+                    System.out.println("|" + id + "           " + addressATM + "       " + cityATM + "    |");
+                }
+                System.out.println("--------------------------------------------------");
+                System.out.println("----------------- ATM COLLECTION -----------------\n");
+                System.out.println("If you want to exit the program, please type -1");
+                choice = ScannerCreator.nextInt();
+            } while (!validateATMChoice(choice));
+            resultSet.close();
+            ScannerCreator.nextLine();
+            return true;
+        } catch (ExitException exitException) {
+            System.out.println("Exiting the program...");
+            System.exit(0);
+        } catch (SQLException sqlException) {
+            sqlException.printStackTrace();
+        }
+        return false;
+    }
+
+    private boolean validateATMChoice(int choice) throws ExitException {
+        if (choice == -1) {
+            throw new ExitException("User chose to exit the program");
+        }
+
+        var resultSet = JDBCPostgresSQL.getATM(choice);
+
+        if (resultSet == null) {
+            System.out.println("Invalid ATM. Please try again");
+            return false;
+        } else {
+            String addressATM;
+            String cityATM;
+            try {
+                addressATM = resultSet.getString("direccion");
+                cityATM = resultSet.getString("poblacion");
+                addATMInformation(addressATM, cityATM);
+                return true;
+            } catch (SQLException sqlException) {
+                sqlException.printStackTrace();
+                return false;
+            }
+        }
+    }
+
+    private void addATMInformation(String addressATM, String cityATM) {
+        switch (this.rol) {
+            case C -> {
+                this.userClient.setAddressATM(addressATM);
+                this.userClient.setCityATM(cityATM);
+            }
+            case E -> {
+                this.userEmployee.setAddressATM(addressATM);
+                this.userEmployee.setCityATM(cityATM);
+            }
         }
     }
 }
