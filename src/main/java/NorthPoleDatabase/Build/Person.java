@@ -2,6 +2,7 @@ package NorthPoleDatabase.Build;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.InputMismatchException;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -267,10 +268,11 @@ public abstract class Person {
         return 0;
     }
     // Method to print the information of one or more accounts of the client
-    protected void printBalance(String inputDNI) {
+    protected ArrayList<Integer> printBalance(String inputDNI) {
         // Call to the client's DNI ResultSet and then call to check get the
         // account using the
         try {
+            var accountsList = new ArrayList<Integer>();
             ResultSet resultSet = JDBCPostgresSQL.getAccount(inputDNI);
 
             String accountDNI = resultSet.getString("dni_titular");
@@ -288,6 +290,7 @@ public abstract class Person {
             System.out.println("---------------------------------");
             while (resultSet.next()) {
                 accountNumber = resultSet.getInt("numero");
+                accountsList.add(accountNumber); // Store the account ID (used in Client withdrawal operation)
                 balance = resultSet.getInt("saldo");
                 System.out.println("|       Account Number: " + accountNumber + "       |");
                 System.out.println("|         Balance: " + balance + "         |");
@@ -296,10 +299,13 @@ public abstract class Person {
             System.out.println("---------------------------------");
             System.out.println("|          Total: " + total + "          |");
             System.out.println("------ ACCOUNT INFORMATION ------\n");
+            // accountsList.add(total); // Adds the total amount at the end of the List
             resultSet.close();
+            return accountsList;
         } catch (SQLException sqlException) {
             System.err.println("Error reading account balance ResultSet");
             sqlException.printStackTrace();
+            return null;
         }
     }
 

@@ -195,7 +195,8 @@ public class JDBCPostgresSQL {
             String preparedStatementSQL =
                     "SELECT * FROM cuentas " +
                     "WHERE dni_titular = " +
-                            "(SELECT dni FROM clientes WHERE dni = ?)";
+                            "(SELECT dni FROM clientes WHERE dni = ?)" +
+                    "ORDER BY numero";
 
             PreparedStatement preparedStatement = connection.prepareStatement(
                     preparedStatementSQL,

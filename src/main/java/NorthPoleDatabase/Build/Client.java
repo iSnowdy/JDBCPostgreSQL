@@ -87,6 +87,8 @@ public class Client extends Person implements ClientOps {
     public void withdrawMoney() throws ExitException {
         boolean validAccounts = false;
         String answer;
+        int numberOfAccounts;
+        int totalAmountInAccounts = 0;
         int originAccount;
         int withdrawAmount;
 
@@ -121,13 +123,17 @@ public class Client extends Person implements ClientOps {
                     // Now that we know it is possible to make the operation, ask for
                     // the account number information before updating the ATM and
                     // the client's account balance
-                    int numberOfAccounts = JDBCPostgresSQL.accountAmount(this.getDNI());
+                    numberOfAccounts = JDBCPostgresSQL.accountAmount(this.getDNI());
                     if (numberOfAccounts > 1) {
+                        // Since the client has more than 1 account, we maybe need the total money across
+                        // all its accounts
+                        totalAmountInAccounts = calculateTotalAmount(resultSetClient);
                         System.out.print("Account number to withdraw money from: ");
                         originAccount = ScannerCreator.nextInt();
                         // Validates that the account given by input exists
                         while (JDBCPostgresSQL.getAccount(originAccount) == null) {
                             System.out.println("The provided account number does not exist. Would you like to try again? (Y/n)");
+                            ScannerCreator.nextLine();
                             answer = ScannerCreator.nextLine();
                             if (answer.isEmpty() || answer.equalsIgnoreCase("y")) {
                                 System.out.print("Account number to withdraw money from: ");
@@ -154,6 +160,16 @@ public class Client extends Person implements ClientOps {
                         validAccounts = true;
                     } else {
                         ScannerCreator.nextLine();
+                        if (numberOfAccounts > 1 && withdrawAmount <= totalAmountInAccounts) {
+                            System.out.println("You do not have enough balance in the selected account. But,\n" +
+                                    "if you choose to, you can withdraw the amount from multiple accounts.");
+                            System.out.println("Do you want to withdraw money from multiple accounts? (Y/n)");
+                            answer = ScannerCreator.nextLine();
+                            if (answer.isEmpty() || answer.equalsIgnoreCase("y")) {
+                                promptAccounts(withdrawAmount, billsToWithdraw);
+                                return; // Operation done. Exit
+                            }
+                        }
                         System.out.println("You do not have enough balance in the selected account " +
                                 "to proceed with the operation. \nWould you like to try again? (Y/n)");
                         answer = ScannerCreator.nextLine();
@@ -262,6 +278,11 @@ public class Client extends Person implements ClientOps {
             System.out.println("It was not possible to withdraw that amount with the available bills");
             return null; // Control this so we can restart the flow if null
         }
+        System.out.println("After creating int[] for bills");
+        for (int i = 0; i < withdrawBills.length; i++) {
+            System.out.println("Bill at position " + i + ": " + withdrawBills[i]);
+        }
+
         return withdrawBills;
     }
     // Validates that it is indeed possible to withdraw that many bills of each quantity
@@ -283,10 +304,91 @@ public class Client extends Person implements ClientOps {
     // method to negative will prevent us from writing a whole new method
     // to UPDATE a negative amount
     private int[] convertToNegative(int[] billsAmount) {
-        for (int i = 0; i < billsAmount.length; i++) {
+        // Inverts the array (to create it I used 50€ as the first element, not last)
+        int lenght = billsAmount.length;
+        for (int i = 0; i < lenght / 2; i++) {
+            int temp = billsAmount[i];
+            billsAmount[i] = billsAmount[lenght - 1 - i];
+            billsAmount[lenght - 1 - i] = temp;
+        }
+        for (int i = 0; i < lenght; i++) {
             billsAmount[i] *= -1;
         }
         return billsAmount;
+    }
+
+    private int calculateTotalAmount(ResultSet resultSet) {
+        try {
+            // Moves back the cursor (it moved to the next position upon initializing the ResultSet
+            resultSet.previous();
+            int total = 0;
+            while (resultSet.next()) {
+                total += resultSet.getInt("saldo");
+            }
+            System.out.println("Total amount: " + total);
+            return total;
+        } catch (SQLException sqlException) {
+            System.err.println("Error calculating total amount");
+            sqlException.printStackTrace();
+            return 0;
+        }
+    }
+
+    private void promptAccounts(int amountToWithdraw, int[] billsWithdraw) throws ExitException {
+        try {
+            var accountList = printBalance(this.getDNI());
+
+            System.out.println("If you want to exit at any point, type -1");
+            System.out.println("Choose from which accounts do you want to withdraw the money (" +
+                    amountToWithdraw + "€) from: ");
+
+            int[] chosenAccounts = new int[accountList.size()];
+
+            var dynamicAmmount = new int[accountList.size()]; // Amount of money from the accounts that will update as we iterate
+
+            int accumulatedAmount = 0;
+
+            for (int i = 0; i < chosenAccounts.length; i++) {
+                System.out.print("Account " + (i + 1) + ": ");
+                int account;
+                do {
+                    account = ScannerCreator.nextInt();
+
+                    if (account == -1) throw new ExitException("User chose to exit");
+
+                    if (!accountList.contains(account)) {
+                        System.out.println("Invalid account. Please try again");
+                    }
+                } while (!accountList.contains(account));
+
+                var accountSet = JDBCPostgresSQL.getAccount(account);
+
+                // Get the balance of that account now that it is valid and store the choice
+                int accountBalance = accountSet.getInt("saldo");
+                chosenAccounts[i] = account;
+
+                int amountToDeduct = Math.min(amountToWithdraw - accumulatedAmount, accountBalance);
+
+                if (amountToDeduct % 5 != 0) amountToDeduct -= amountToDeduct % 5; // Make sure to only get multiples of 5
+                // Now store the value in an array to later iterate through it while updating
+                dynamicAmmount[i] = amountToDeduct;
+                accumulatedAmount += amountToDeduct;
+
+                if (accumulatedAmount >= amountToWithdraw) {
+                    JDBCPostgresSQL.updateATM(billsWithdraw, this.addressATM, this.cityATM);
+                    for (int j = 0; j < dynamicAmmount.length; j++) {
+                        if (chosenAccounts[j] != 0) {
+                            JDBCPostgresSQL.updateAccounts(chosenAccounts[j], dynamicAmmount[j]);
+                        }
+                    }
+                    System.out.println("Withdrawal completed successfully");
+                    return;
+                }
+            }
+        } catch (SQLException sqlException) {
+            System.err.println("Error during multiple accounts withdrawal validation");
+            sqlException.printStackTrace();
+        }
     }
 
     public void setAddressATM(String addressATM) {

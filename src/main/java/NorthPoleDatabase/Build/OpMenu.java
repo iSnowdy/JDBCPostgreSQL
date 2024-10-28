@@ -221,11 +221,10 @@ public class OpMenu {
             int id;
             int choice;
 
-            var resultSet = JDBCPostgresSQL.getAllATM();
-            resultSet.previous();
-
             System.out.println();
             do {
+                var resultSet = JDBCPostgresSQL.getAllATM();
+                resultSet.previous();
                 System.out.println("----------------- ATM COLLECTION -----------------");
                 System.out.println("Please choose the ATM you wish to work with");
                 System.out.println("To do so, provide the ID number of the ATM");
@@ -243,9 +242,10 @@ public class OpMenu {
                 System.out.println("----------------- ATM COLLECTION -----------------\n");
                 System.out.println("If you want to exit the program, please type -1");
                 choice = ScannerCreator.nextInt();
+                resultSet.close();
             } while (!validateATMChoice(choice));
-            resultSet.close();
             ScannerCreator.nextLine();
+            System.out.println();
             return true;
         } catch (ExitException exitException) {
             System.out.println("Exiting the program...");
