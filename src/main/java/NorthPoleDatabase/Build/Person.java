@@ -8,7 +8,6 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public abstract class Person {
-    // PK and NOT NULL attributes are defined as final
     private final String DNI;
     private final String name;
     private String pin;
@@ -35,7 +34,7 @@ public abstract class Person {
             inputDNI = ScannerCreator.nextLine();
 
             if (this instanceof Employee) {
-                if (JDBCPostgresSQL.getClient(inputDNI) == null) {
+                if (JDBCPostgreSQL.getClient(inputDNI) == null) {
                     System.out.println("There are no client matches with the provided DNI");
                     System.out.println("Would you like to try again? (Y/n)");
                     answer = ScannerCreator.nextLine();
@@ -96,7 +95,7 @@ public abstract class Person {
             if (this instanceof Employee) {
                 // If the user doing this operation is an employee, query the DB to
                 // check if he has provided a valid DNI
-                if (JDBCPostgresSQL.getClient(inputDNI) == null) {
+                if (JDBCPostgreSQL.getClient(inputDNI) == null) {
                     System.out.println("There are no client matches with the provided DNI");
                     System.out.println("Would you like to try again? (Y/n)");
                     answer = ScannerCreator.nextLine();
@@ -109,11 +108,8 @@ public abstract class Person {
                     answer = ScannerCreator.nextLine();
                     if (answer.isEmpty() || answer.equalsIgnoreCase("y")) {
                         System.out.print("Please provide the new PIN number: ");
-                        // Cannot be nextLine() because the '\n' is given as
-                        // parameter to the SQL x.x
-                        inputPin = ScannerCreator.next();
-                        ScannerCreator.nextLine();
-                        JDBCPostgresSQL.updatePIN(inputDNI, inputPin);
+                        inputPin = promptPIN();
+                        JDBCPostgreSQL.updatePIN(inputDNI, inputPin);
                         validUser = true;
                     } else if (answer.equalsIgnoreCase("n")) {
                         System.out.println("Returning to the main menu...");
@@ -137,10 +133,8 @@ public abstract class Person {
                     System.out.println("Are you sure you want to CHANGE the PIN of your account (Y/n)?");
                     answer = ScannerCreator.nextLine();
                     if (answer.isEmpty() || answer.equalsIgnoreCase("y")) {
-                        System.out.print("Please provide the new PIN number: ");
-                        inputPin = ScannerCreator.next();
-                        ScannerCreator.nextLine();
-                        JDBCPostgresSQL.updatePIN(inputDNI, inputPin);
+                        inputPin = promptPIN();
+                        JDBCPostgreSQL.updatePIN(inputDNI, inputPin);
                         validUser = true;
                     } else if (answer.equalsIgnoreCase("n")) {
                         System.out.println("Returning to the main menu...");
@@ -153,30 +147,31 @@ public abstract class Person {
         }
     }
 
+    private String promptPIN() {
+        String inputPin;
+        do {
+            System.out.println("Please provide the new PIN number: ");
+            inputPin = ScannerCreator.next();
+            if (inputPin.length() != 4) {
+                System.err.println("Invalid PIN format. It must be composed of 4 characters");
+            }
+        } while (inputPin.length() != 4);
+        return inputPin;
+    }
+
     public boolean validateDNI(String DNI) {
         String regex = "^[XYZ0-9][0-9]{7}[A-Z]$";
         Pattern pattern = Pattern.compile(regex);
         Matcher matcher = pattern.matcher(DNI);
         if (!matcher.matches()) {
-            System.out.println("Invalid DNI format. Please try again with the" +
+            System.out.println("Invalid DNI format. Please try again with the " +
                     "following desktop: ^[XYZ0-9][0-9]{7}[A-Z]$\"");
             return false;
         }
         return true;
     }
-
-    public boolean validateATM(String address, String city) {
-        // This method returns true if any information at all is returned with
-        // a SELECT using the given parameters
-        if (JDBCPostgresSQL.getATM(address, city) == null) {
-            System.out.println("Invalid address or city. Please try again...");
-            System.out.println("If you want to exit the operation, please type EXIT");
-            return false;
-        }
-        return true;
-    }
-    // Method that will prompt the user for the amount of each bill and
-    // and the same time validate that input. If the user wants to stop the
+    // Method that will prompt the user for the amount of each bill
+    // and at the same time validate that input. If the user wants to stop the
     // flow of the program, writing 'exit' will throw a customized exception
     // that will cascade to the main menu (hopefully)
     public int[] promptBills(String addressATM, String cityATM, int account) throws ExitException {
@@ -189,7 +184,7 @@ public abstract class Person {
             // Envelope this in a transaction. I do this because we are updating two things at once:
             // the ATM and the client's account (assuming it is not a transaction use for this method).
             // So if one of those is not properly completed, we do not want the other one to complete
-            JDBCPostgresSQL.getConnection().setAutoCommit(false);
+            JDBCPostgreSQL.getConnection().setAutoCommit(false);
 
             System.out.print("5€ bills: ");
             this.bills[0] = this.validateBillsInput(ScannerCreator.nextInt());
@@ -209,25 +204,25 @@ public abstract class Person {
             // to deposit the money
             // Consider changing this. Kinda dirty
             if (account != -1) {
-                JDBCPostgresSQL.depositToAccount(account, totalAmount);
-                JDBCPostgresSQL.updateATM(this.bills, addressATM, cityATM);
+                JDBCPostgreSQL.depositToAccount(account, totalAmount);
+                JDBCPostgreSQL.updateATM(this.bills, addressATM, cityATM);
                 return this.getBills(); // Exists the method preemptively
                 // Finalize the transaction inside the updateATM method
                 // So no need to change it here. Also avoids transaction conflict
             }
             // Now that we have a valid input by the user stored in an
             // int array, we can call the PreparedStatement to UPDATE the DB
-            JDBCPostgresSQL.updateATM(this.bills, addressATM, cityATM);
+            JDBCPostgreSQL.updateATM(this.bills, addressATM, cityATM);
         } catch (ExitException exitException) {
             try {
-                JDBCPostgresSQL.getConnection().rollback();
+                JDBCPostgreSQL.getConnection().rollback();
             } catch (SQLException sqlException) {
                 System.err.println("Error during rollback");
             }
             System.out.println("Exiting operation. Returning to the main menu...");
         } catch (SQLException sqlException) {
             try {
-                JDBCPostgresSQL.getConnection().rollback();
+                JDBCPostgreSQL.getConnection().rollback();
             } catch (SQLException sqlException1) {
                 System.err.println("Error during rollback");
             }
@@ -235,7 +230,7 @@ public abstract class Person {
             sqlException.printStackTrace();
         } finally {
             try {
-                JDBCPostgresSQL.getConnection().setAutoCommit(true);
+                JDBCPostgreSQL.getConnection().setAutoCommit(true);
             } catch (SQLException sqlException) {
                 System.err.println("Failure to set auto-commit back to true");
             }
@@ -273,7 +268,7 @@ public abstract class Person {
         // account using the
         try {
             var accountsList = new ArrayList<Integer>();
-            ResultSet resultSet = JDBCPostgresSQL.getAccount(inputDNI);
+            ResultSet resultSet = JDBCPostgreSQL.getAccount(inputDNI);
 
             String accountDNI = resultSet.getString("dni_titular");
             // We need to do this in order to not keep one tuple and get less
@@ -308,19 +303,10 @@ public abstract class Person {
             return null;
         }
     }
-
-    @Override
-    public String toString() {
-        return  "DNI: " + this.DNI + "\n" +
-                "Name: " + this.name + "\n" +
-                "PIN: " + this.pin;
-    }
-
     // Getters and Setters
     public String getDNI() {
         return DNI;
     }
-
     public int[] getBills() {
         return bills;
     }

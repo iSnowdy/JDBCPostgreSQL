@@ -1,6 +1,6 @@
 package NorthPoleDatabase.Main;
 
-import NorthPoleDatabase.Build.JDBCPostgresSQL;
+import NorthPoleDatabase.Build.JDBCPostgreSQL;
 import NorthPoleDatabase.Build.LoginMenu;
 import NorthPoleDatabase.Build.ScannerCreator;
 import org.postgresql.util.PSQLException;
@@ -39,7 +39,7 @@ public class Main {
             switch(answerConnection) {
                 case 1 -> {
                     System.out.println("Connecting to database using localhost...");
-                    new JDBCPostgresSQL(username, password, dbname);
+                    new JDBCPostgreSQL(username, password, dbname);
 
                 }
                 case 2 -> {
@@ -47,7 +47,7 @@ public class Main {
                     System.out.println("Specify the IP address: ");
                     String host = ScannerCreator.nextLine();
                     System.out.println("Connecting to database using remote database...");
-                    new JDBCPostgresSQL(username, password, host, dbname);
+                    new JDBCPostgreSQL(username, password, host, dbname);
                 }
                 default -> System.out.println("Invalid answer. Please try again.");
             }

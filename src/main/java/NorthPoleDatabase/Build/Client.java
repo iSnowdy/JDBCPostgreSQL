@@ -13,7 +13,6 @@ public class Client extends Person implements ClientOps {
         super(DNI, name, pin);
         this.rol = Rol.C; // default value in the DDL
     }
-
     // Abstract methods
     @Override
     protected void makeTransfer() throws ExitException {
@@ -28,7 +27,7 @@ public class Client extends Person implements ClientOps {
         while (!validAccounts) {
             System.out.println("Please provide the following information");
             // Logic to find out if the client has one or more accounts
-            int numberOfAccounts = JDBCPostgresSQL.accountAmount(this.getDNI());
+            int numberOfAccounts = JDBCPostgreSQL.accountAmount(this.getDNI());
 
             if (numberOfAccounts > 1) {
                 System.out.print("Origin account: ");
@@ -37,7 +36,7 @@ public class Client extends Person implements ClientOps {
                 // If, on the other hand, the client only has one account, we can just
                 // extract if from the DB. This way we prevent the client from typing it
                 try {
-                    ResultSet resultSet = JDBCPostgresSQL.getAccount(this.getDNI());
+                    ResultSet resultSet = JDBCPostgreSQL.getAccount(this.getDNI());
                     originAccount = resultSet.getInt("numero");
                     resultSet.close(); // Free memory. We do not need the ResultSet anymore
                 } catch (SQLException sqlException) {
@@ -46,12 +45,11 @@ public class Client extends Person implements ClientOps {
                 }
             }
             // Whether the client has 1 or more accounts, we need to ask for the destination account
-            // Hence why this is outside the if-else block
             System.out.print("Destination account: ");
             destinationAccount = ScannerCreator.nextInt();
 
-            if (JDBCPostgresSQL.getAccount(originAccount) == null ||
-                    JDBCPostgresSQL.getAccount(destinationAccount) == null) {
+            if (JDBCPostgreSQL.getAccount(originAccount) == null ||
+                    JDBCPostgreSQL.getAccount(destinationAccount) == null) {
                 System.out.println("One of the accounts provided does not exist. Would you like to try again? (Y/n)");
                 ScannerCreator.nextLine();
                 answer = ScannerCreator.nextLine();
@@ -70,7 +68,7 @@ public class Client extends Person implements ClientOps {
                 ScannerCreator.nextLine();
                 answer = ScannerCreator.nextLine();
                 if (answer.isEmpty() || answer.equalsIgnoreCase("y")) {
-                    JDBCPostgresSQL.updateAccounts(originAccount, destinationAccount, amountToTransfer);
+                    JDBCPostgreSQL.updateAccounts(originAccount, destinationAccount, amountToTransfer);
                     validAccounts = true;
                 } else if (answer.equalsIgnoreCase("n")) {
                     System.out.println("Returning to the main menu...");
@@ -81,7 +79,6 @@ public class Client extends Person implements ClientOps {
             }
         }
     }
-
     // Interface methods
     @Override
     public void withdrawMoney() throws ExitException {
@@ -95,8 +92,7 @@ public class Client extends Person implements ClientOps {
         System.out.println("Initializing Withdraw Operation (Client)...");
         while (!validAccounts) {
             System.out.println("Please provide the following information");
-            // First, validate the ATM that the client is working with
-            // Second, ask for the amount to withdraw and check if that is indeed possible
+            // First, ask for the amount to withdraw and check if that is indeed possible
             // The account number here will be overwritten if the client has more than one
             // account to their name. I chose to follow this flow in order to not summon another
             // ResultSet type of Object inside the method of validation. Like this, resources
@@ -104,8 +100,8 @@ public class Client extends Person implements ClientOps {
             try {
                 printBalance(this.getDNI());
 
-                ResultSet resultSetClient = JDBCPostgresSQL.getAccount(this.getDNI());
-                ResultSet resultSetATM = JDBCPostgresSQL.getATM(this.addressATM, this.cityATM);
+                ResultSet resultSetClient = JDBCPostgreSQL.getAccount(this.getDNI());
+                ResultSet resultSetATM = JDBCPostgreSQL.getATM(this.addressATM, this.cityATM);
 
                 do {
                     System.out.print("Type in the amount you want to withdraw: ");
@@ -123,15 +119,15 @@ public class Client extends Person implements ClientOps {
                     // Now that we know it is possible to make the operation, ask for
                     // the account number information before updating the ATM and
                     // the client's account balance
-                    numberOfAccounts = JDBCPostgresSQL.accountAmount(this.getDNI());
+                    numberOfAccounts = JDBCPostgreSQL.accountAmount(this.getDNI());
                     if (numberOfAccounts > 1) {
                         // Since the client has more than 1 account, we maybe need the total money across
-                        // all its accounts
+                        // all its accounts to complete the withdrawal
                         totalAmountInAccounts = calculateTotalAmount(resultSetClient);
                         System.out.print("Account number to withdraw money from: ");
                         originAccount = ScannerCreator.nextInt();
                         // Validates that the account given by input exists
-                        while (JDBCPostgresSQL.getAccount(originAccount) == null) {
+                        while (JDBCPostgreSQL.getAccount(originAccount) == null) {
                             System.out.println("The provided account number does not exist. Would you like to try again? (Y/n)");
                             ScannerCreator.nextLine();
                             answer = ScannerCreator.nextLine();
@@ -154,9 +150,9 @@ public class Client extends Person implements ClientOps {
                     // Now we know where the client is, how much they want to withdraw and from what
                     // account. Final confirmation is if they have enough balance to finalize the
                     // operation
-                    if (JDBCPostgresSQL.checkBalance(this.getDNI(), originAccount, withdrawAmount)) {
-                        JDBCPostgresSQL.updateATM(billsToWithdraw, this.addressATM, this.cityATM);
-                        JDBCPostgresSQL.updateAccounts(originAccount, withdrawAmount);
+                    if (JDBCPostgreSQL.checkBalance(this.getDNI(), originAccount, withdrawAmount)) {
+                        JDBCPostgreSQL.updateATM(billsToWithdraw, this.addressATM, this.cityATM);
+                        JDBCPostgreSQL.updateAccounts(originAccount, withdrawAmount);
                         validAccounts = true;
                     } else {
                         ScannerCreator.nextLine();
@@ -178,7 +174,7 @@ public class Client extends Person implements ClientOps {
                             throw new ExitException("User chose to exit");
                         }
                     }
-                } else {
+                } else { // The ATM did not have enough bills to withdraw the amount the client wanted
                     ScannerCreator.nextLine();
                     System.out.println("Would you like to try a different amount? (Y/n)");
                     answer = ScannerCreator.nextLine();
@@ -193,7 +189,7 @@ public class Client extends Person implements ClientOps {
             }
         }
     }
-    //
+
     @Override
     public void depositMoney() throws ExitException {
         String answer;
@@ -202,7 +198,7 @@ public class Client extends Person implements ClientOps {
         System.out.println("Initializing Deposit Operation...");
         System.out.println("Please provide the following information");
 
-        int numberOfAccounts = JDBCPostgresSQL.accountAmount(this.getDNI());
+        int numberOfAccounts = JDBCPostgreSQL.accountAmount(this.getDNI());
 
         printBalance(this.getDNI());
 
@@ -211,7 +207,7 @@ public class Client extends Person implements ClientOps {
             withdrawAccount = ScannerCreator.nextInt();
         } else {
             try {
-                ResultSet resultSet = JDBCPostgresSQL.getAccount(this.getDNI());
+                ResultSet resultSet = JDBCPostgreSQL.getAccount(this.getDNI());
                 withdrawAccount = resultSet.getInt("numero");
                 resultSet.close();
             } catch (SQLException sqlException) {
@@ -220,7 +216,7 @@ public class Client extends Person implements ClientOps {
             }
         }
 
-        if (JDBCPostgresSQL.getAccount(withdrawAccount) == null) {
+        if (JDBCPostgreSQL.getAccount(withdrawAccount) == null) {
             System.out.println("The provided account number does not exist. Would you like to try again? (Y/n)");
             ScannerCreator.nextLine();
             answer = ScannerCreator.nextLine();
@@ -233,17 +229,14 @@ public class Client extends Person implements ClientOps {
             // Not implemented in Client / Employee as to not repeat code twice
             // The method will also UPDATE the DB for the ATM and the client
             promptBills(this.addressATM, this.cityATM, withdrawAccount);
-
         }
     }
-    // Like this we will only accept input that we can withdraw. So for example
-    // if the user wanted to withdraw 123€, we would not let them because
-    // we have no way of giving those 3€
+    // Validation of input for €
     private boolean validateWithdrawalAmount(int amountToWithdraw) throws ExitException {
         if (amountToWithdraw == -1) {
             throw new ExitException("User chose to exit");
         }
-
+        // Invalid if negative value or not a multiple of 5
         if (!(amountToWithdraw > 0 && amountToWithdraw % 5 == 0)) {
             System.out.println("Invalid amount. Please enter an amount that is a multiple of 5");
             System.out.println("If you wish to leave this operation, type -1 instead");
@@ -256,14 +249,12 @@ public class Client extends Person implements ClientOps {
     private int[] billsToWithdraw(int[] availableBills, int amountToWithdraw) {
         System.out.println("Amount to withdraw: " + amountToWithdraw);
 
-        int[] possibleBills = {50, 20, 10, 5};  // Orden de mayor a menor
-        int[] withdrawBills = new int[4];  // Para almacenar la cantidad de billetes a retirar
+        int[] possibleBills = {50, 20, 10, 5};  // From 50 to 5 because we want to get as few bills as possible
+        int[] withdrawBills = new int[4];
 
         for (int i = 0; i < possibleBills.length; i++) {
-            if (amountToWithdraw <= 0) break; // We have enough bills
-            // Calculates how many of each bill do we need and takes the
-            // least amount of needed (because we start with high bill value)
-            // and the available ones
+            if (amountToWithdraw <= 0) break; // We have enough bills; leave
+
             int billsNeeded = amountToWithdraw / possibleBills[i];
             // Math.min???
             if (billsNeeded > availableBills[i]) {
@@ -278,14 +269,9 @@ public class Client extends Person implements ClientOps {
             System.out.println("It was not possible to withdraw that amount with the available bills");
             return null; // Control this so we can restart the flow if null
         }
-        System.out.println("After creating int[] for bills");
-        for (int i = 0; i < withdrawBills.length; i++) {
-            System.out.println("Bill at position " + i + ": " + withdrawBills[i]);
-        }
-
         return withdrawBills;
     }
-    // Validates that it is indeed possible to withdraw that many bills of each quantity
+    // Extracts the amount of bills currently available in a certain ATM
     private int[] getAvailableBills(ResultSet resultSet) {
         try {
             int[] availableBills = new int[4];
@@ -333,9 +319,11 @@ public class Client extends Person implements ClientOps {
             return 0;
         }
     }
-
+    // Method to handle the case where the client has not enough balance in one account
+    // but does across all their accounts
     private void promptAccounts(int amountToWithdraw, int[] billsWithdraw) throws ExitException {
         try {
+            // ArrayList with the ID's of the accounts
             var accountList = printBalance(this.getDNI());
 
             System.out.println("If you want to exit at any point, type -1");
@@ -343,8 +331,8 @@ public class Client extends Person implements ClientOps {
                     amountToWithdraw + "€) from: ");
 
             int[] chosenAccounts = new int[accountList.size()];
-
-            var dynamicAmmount = new int[accountList.size()]; // Amount of money from the accounts that will update as we iterate
+            // Amount of money from the accounts that will update as we iterate
+            var dynamicAmmount = new int[accountList.size()];
 
             int accumulatedAmount = 0;
 
@@ -361,7 +349,7 @@ public class Client extends Person implements ClientOps {
                     }
                 } while (!accountList.contains(account));
 
-                var accountSet = JDBCPostgresSQL.getAccount(account);
+                var accountSet = JDBCPostgreSQL.getAccount(account);
 
                 // Get the balance of that account now that it is valid and store the choice
                 int accountBalance = accountSet.getInt("saldo");
@@ -375,12 +363,11 @@ public class Client extends Person implements ClientOps {
                 accumulatedAmount += amountToDeduct;
 
                 if (accumulatedAmount >= amountToWithdraw) {
-                    JDBCPostgresSQL.updateATM(billsWithdraw, this.addressATM, this.cityATM);
+                    JDBCPostgreSQL.updateATM(billsWithdraw, this.addressATM, this.cityATM);
                     for (int j = 0; j < dynamicAmmount.length; j++) {
-                        if (chosenAccounts[j] != 0) {
-                            JDBCPostgresSQL.updateAccounts(chosenAccounts[j], dynamicAmmount[j]);
-                        }
+                        if (chosenAccounts[j] != 0) JDBCPostgreSQL.updateAccounts(chosenAccounts[j], dynamicAmmount[j]);
                     }
+                    accountSet.close();
                     System.out.println("Withdrawal completed successfully");
                     return;
                 }
@@ -396,14 +383,5 @@ public class Client extends Person implements ClientOps {
     }
     public void setCityATM(String cityATM) {
         this.cityATM = cityATM;
-    }
-
-    @Override
-    public String toString() {
-        String information = super.toString();
-        return
-            "===== CLIENT INFORMATION =====\n" +
-            information + "\n" +
-            "===== CLIENT INFORMATION =====";
     }
 }

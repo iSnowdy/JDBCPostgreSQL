@@ -4,7 +4,6 @@ package NorthPoleDatabase.Build;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.InputMismatchException;
 
 public class Employee extends Person implements EmpOps {
     // ENUM for rol
@@ -16,7 +15,6 @@ public class Employee extends Person implements EmpOps {
         super(DNI, name, pin);
         this.rol = Rol.E; // default value in the DDL
     }
-
     // Abstract methods
     @Override
     protected void makeTransfer() throws ExitException {
@@ -35,8 +33,8 @@ public class Employee extends Person implements EmpOps {
             System.out.print("Destination account: ");
             destinationAccount = ScannerCreator.nextInt();
 
-            if (JDBCPostgresSQL.getAccount(originAccount) == null ||
-                    JDBCPostgresSQL.getAccount(destinationAccount) == null) {
+            if (JDBCPostgreSQL.getAccount(originAccount) == null ||
+                    JDBCPostgreSQL.getAccount(destinationAccount) == null) {
                 System.out.println("One of the accounts provided does not exist. Would you like to try again? (Y/n)");
                 ScannerCreator.nextLine();
                 answer = ScannerCreator.nextLine();
@@ -55,7 +53,7 @@ public class Employee extends Person implements EmpOps {
                 ScannerCreator.nextLine();
                 answer = ScannerCreator.nextLine();
                 if (answer.isEmpty() || answer.equalsIgnoreCase("y")) {
-                    JDBCPostgresSQL.updateAccounts(originAccount, destinationAccount, amountToTransfer);
+                    JDBCPostgreSQL.updateAccounts(originAccount, destinationAccount, amountToTransfer);
                     validAccounts = true;
                 } else if (answer.equalsIgnoreCase("n")) {
                     System.out.println("Returning to the main menu...");
@@ -110,10 +108,10 @@ public class Employee extends Person implements EmpOps {
 
             if (answer.isEmpty() || answer.equalsIgnoreCase("y")) {
                 // Check if the client already exists
-                if (JDBCPostgresSQL.getClient(DNI) == null) {
+                if (JDBCPostgreSQL.getClient(DNI) == null) {
                     System.out.println("Data is valid. Preparing to add the client to the database");
                     // Insert the new client
-                    JDBCPostgresSQL.insertUser(DNI, name, pin, Rol.C);
+                    JDBCPostgreSQL.insertUser(DNI, name, pin, Rol.C);
                     validClientInfo = true; // Now that we have added the client, exit the loop
                 } else {
                     System.out.println("A client with this DNI already exists. Please try again");
@@ -155,10 +153,10 @@ public class Employee extends Person implements EmpOps {
             answer = ScannerCreator.nextLine();
 
             if (answer.isEmpty() || answer.equalsIgnoreCase("y")) {
-                if (JDBCPostgresSQL.getClient(DNI) == null) {
+                if (JDBCPostgreSQL.getClient(DNI) == null) {
                     System.out.println("Client not found. Please validate the input data");
                 } else {
-                    JDBCPostgresSQL.deleteUser(DNI, name);
+                    JDBCPostgreSQL.deleteUser(DNI, name);
                     validClient = true;
                 }
             } else if (answer.equalsIgnoreCase("n")) {
@@ -187,7 +185,7 @@ public class Employee extends Person implements EmpOps {
             System.out.print("Client's DNI: ");
             DNI = ScannerCreator.nextLine();
 
-            if (JDBCPostgresSQL.getClient(DNI) == null) {
+            if (JDBCPostgreSQL.getClient(DNI) == null) {
                 System.out.println("Client not found. Please validate the input data");
                 System.out.println("Would you like to try again (Y/n)?");
                 answer = ScannerCreator.nextLine();
@@ -201,7 +199,7 @@ public class Employee extends Person implements EmpOps {
                 System.out.println("DNI: " + DNI);
                 answer = ScannerCreator.nextLine();
                 if (answer.isEmpty() || answer.equalsIgnoreCase("y")) {
-                    JDBCPostgresSQL.insertAccount(DNI);
+                    JDBCPostgreSQL.insertAccount(DNI);
                     validClient = true;
                 } else if (answer.equalsIgnoreCase("n")) {
                     System.out.println("Returning to the main menu...");
@@ -227,7 +225,7 @@ public class Employee extends Person implements EmpOps {
             System.out.print("Client's DNI: ");
             DNI = ScannerCreator.nextLine();
 
-            if (JDBCPostgresSQL.getClient(DNI) == null) {
+            if (JDBCPostgreSQL.getClient(DNI) == null) {
                 System.out.println("Client not found. Please validate the input data");
                 System.out.println("Would you like to try again (Y/n)?");
                 answer = ScannerCreator.nextLine();
@@ -242,20 +240,20 @@ public class Employee extends Person implements EmpOps {
                 if (answer.isEmpty() || answer.equalsIgnoreCase("y")) {
                     printBalance(DNI);
 
-                    int numberOfAccounts = JDBCPostgresSQL.accountAmount(DNI);
+                    int numberOfAccounts = JDBCPostgreSQL.accountAmount(DNI);
                     if (numberOfAccounts > 1) {
                         System.out.println("Please choose which account to delete: ");
                         accountToDelete = ScannerCreator.nextInt();
                     } else {
                         try {
-                            ResultSet resultSet = JDBCPostgresSQL.getAccount(DNI);
+                            ResultSet resultSet = JDBCPostgreSQL.getAccount(DNI);
                             accountToDelete = resultSet.getInt("numero");
                         } catch (SQLException sqlException) {
                             System.err.println("Error accessing the ResultSet " +
                                     "for deletion of account " + DNI);
                         }
                     }
-                    JDBCPostgresSQL.deleteAccount(DNI, accountToDelete);
+                    JDBCPostgreSQL.deleteAccount(DNI, accountToDelete);
                     validClient = true;
                 } else if (answer.equalsIgnoreCase("n")) {
                     System.out.println("Returning to the main menu...");
@@ -280,14 +278,5 @@ public class Employee extends Person implements EmpOps {
     }
     public void setCityATM(String cityATM) {
         this.cityATM = cityATM;
-    }
-
-    @Override
-    public String toString() {
-        String information = super.toString();
-        return
-            "===== EMPLOYEE INFORMATION =====\n" +
-            information + "\n" +
-            "===== EMPLOYEE INFORMATION =====";
     }
 }

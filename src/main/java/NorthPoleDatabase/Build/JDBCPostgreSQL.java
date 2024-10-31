@@ -2,7 +2,7 @@ package NorthPoleDatabase.Build;
 
 import java.sql.*;
 
-public class JDBCPostgresSQL {
+public class JDBCPostgreSQL {
     // Strings to build the valid URL
     private final String URL = "jdbc:postgresql://";
     // jdbc:postgresql://localhost:5432/postgres
@@ -18,10 +18,11 @@ public class JDBCPostgresSQL {
     private static Connection connection;
     // To store the return number of tuples affected after a SQL query
     // public access just in case we want to verify from outside the class
-    public static int tuplesAffected; // Make it not static
+    // static because it is used within static methods
+    public static int tuplesAffected;
 
     // localhost constructor
-    public JDBCPostgresSQL(String USERNAME, String PASSWORD, String DBNAME) throws SQLException {
+    public JDBCPostgreSQL(String USERNAME, String PASSWORD, String DBNAME) throws SQLException {
         this.USERNAME = USERNAME;
         this.PASSWORD = PASSWORD;
         this.DBNAME = DBNAME;
@@ -32,9 +33,8 @@ public class JDBCPostgresSQL {
         // Connection to the DB is not left in the hands of the user
         connect();
     }
-
     // HOST constructor
-    public JDBCPostgresSQL(String USERNAME, String PASSWORD, String HOST, String DBNAME) throws SQLException {
+    public JDBCPostgreSQL(String USERNAME, String PASSWORD, String HOST, String DBNAME) throws SQLException {
         this.USERNAME = USERNAME;
         this.PASSWORD = PASSWORD;
         this.DBNAME = DBNAME;
@@ -45,46 +45,32 @@ public class JDBCPostgresSQL {
         // Connecting using a specific HOST
         connect(VALIDURL);
     }
-
     // Given the USERNAME and PASSWORD, connects to the DB
     private void connect() {
         try {
             this.connection = DriverManager.getConnection(this.VALIDURL, this.USERNAME, this.PASSWORD);
-            System.out.println("You have been succesfully connected to the PostgresSQL database");
+            System.out.println("You have been succesfully connected to the PostgreSQL" +
+                    " database");
         } catch (SQLException sqlException) {
-            System.err.println("Error connecting to PostgresSQL");
+            System.err.println("Error connecting to PostgreSQL" +
+                    "");
             sqlException.printStackTrace();
             System.exit(1);
         }
     }
-
     // When the connection is not done through localhost
     private void connect(String URL) {
         try {
             this.connection = DriverManager.getConnection(URL, this.USERNAME, this.PASSWORD);
-            System.out.println("You have been succesfully connected to the PostgresSQL database");
+            System.out.println("You have been succesfully connected to the PostgreSQL" +
+                    " database");
         } catch (SQLException sqlException) {
-            System.err.println("Error connecting to PostgresSQL");
+            System.err.println("Error connecting to PostgreSQL" +
+                    "");
             sqlException.printStackTrace();
             System.exit(1);
         }
     }
-
-    // Checks if the connection is still valid. Probably not needed here? But should be
-    // good practice. Especially later on if we use long-time connections / pools
-    protected boolean validConnection() {
-        try {
-            if (connection != null && connection.isValid(0)) {
-                System.out.println("Connection is valid");
-                return true;
-            }
-        } catch (SQLException sqlException) {
-            System.err.println("Invalid connection");
-            sqlException.printStackTrace();
-        }
-        return false;
-    }
-
     // Closes the connection to the DB
     protected static void disconnect() {
         try {
@@ -123,19 +109,18 @@ public class JDBCPostgresSQL {
             // automatically closed
             return resultSet;
         } catch (SQLException sqlException) {
-            System.err.println("Error getting client from PostgresSQL");
+            System.err.println("Error getting client from PostgreSQL" +
+                    "");
             sqlException.printStackTrace();
             return null;
         }
     }
-
+    // Gets a user; client or employee
     public static ResultSet getPerson(String DNI, String pin) {
         // UNION can only return one row even if some rows from two queries return something
         // UNION ALL, on the other hand, can result duplicates. Which we want since we are
         // querying two tables where an employee could also be a client
         try {
-            //String preparedStatementSQL = "SELECT 'cliente' AS type, dni, nombre FROM clientes WHERE dni = ? AND pin = ? UNION ALL SELECT 'empleado' AS type , dni, nombre FROM empleados WHERE dni = ? AND pin = ?";
-
             String preparedStatementSQL =
                     "SELECT 'cliente' AS type, dni, nombre " +
                     "FROM clientes WHERE dni = ? AND pin = ? " +
@@ -148,6 +133,7 @@ public class JDBCPostgresSQL {
                     preparedStatementSQL,
                     ResultSet.TYPE_SCROLL_INSENSITIVE,
                     ResultSet.CONCUR_READ_ONLY);
+
             preparedStatement.setString(1, DNI);
             preparedStatement.setString(2, pin);
             preparedStatement.setString(3, DNI);
@@ -164,7 +150,8 @@ public class JDBCPostgresSQL {
             // Otherwise, return the ResultSet of the query
             return resultSet;
         } catch (SQLException sqlException) {
-            System.err.println("Error getting client from PostgresSQL");
+            System.err.println("Error getting client from PostgreSQL" +
+                    "");
             sqlException.printStackTrace();
             return null;
         }
@@ -184,7 +171,8 @@ public class JDBCPostgresSQL {
             if (!resultSet.next()) return null; // Does not exist
             return resultSet; // Returns all the information contained in the DB for that account number
         } catch (SQLException sqlException) {
-            System.err.println("Error getting account from PostgresSQL");
+            System.err.println("Error getting account from PostgreSQL" +
+                    "");
             sqlException.printStackTrace();
             return null;
         }
@@ -209,11 +197,11 @@ public class JDBCPostgresSQL {
             if (!resultSet.next()) return null; // Does not exist
             return resultSet; // Returns all the information contained in the DB for that account number
         } catch (SQLException sqlException) {
-            System.err.println("Error getting account from PostgresSQL");
+            System.err.println("Error getting account from PostgreSQL" +
+                    "");
             sqlException.printStackTrace();
             return null;
         }
-
     }
     // Method to return the number of tuples if a client's bank
     public static int accountAmount(String DNI) {
@@ -223,6 +211,7 @@ public class JDBCPostgresSQL {
                     "WHERE dni_titular = ?";
 
             PreparedStatement preparedStatement = connection.prepareStatement(preparedStatementSQL);
+
             preparedStatement.setString(1, DNI);
 
             ResultSet resultSet = preparedStatement.executeQuery();
@@ -235,7 +224,8 @@ public class JDBCPostgresSQL {
                 return 0;
             }
         } catch (SQLException sqlException) {
-            System.err.println("Error getting account amount from PostgresSQL");
+            System.err.println("Error getting account amount from PostgreSQL" +
+                    "");
             sqlException.printStackTrace();
             return 0;
         }
@@ -255,7 +245,8 @@ public class JDBCPostgresSQL {
             if (!resultSet.next()) return null;
             return resultSet;
         } catch (SQLException sqlException) {
-            System.err.println("Error getting all ATM's from PostgresSQL");
+            System.err.println("Error getting all ATM's from PostgreSQL" +
+                    "");
             sqlException.printStackTrace();
             return null;
         }
@@ -279,7 +270,8 @@ public class JDBCPostgresSQL {
             if (!resultSet.next()) return null;
             return resultSet;
         } catch (SQLException sqlException) {
-            System.err.println("Error getting ATM from PostgresSQL");
+            System.err.println("Error getting ATM from PostgreSQL" +
+                    "");
             sqlException.printStackTrace();
             return null;
         }
@@ -299,13 +291,16 @@ public class JDBCPostgresSQL {
             if (!resultSet.next()) return null; // Nothing found
             return resultSet; // If the query found something, return that
         } catch (SQLException sqlException) {
-            System.err.println("Error validating ATM UPDATE from PostgresSQL");
+            System.err.println("Error validating ATM UPDATE from PostgreSQL" +
+                    "");
             sqlException.printStackTrace();
             return null;
         }
     }
+
     // UPDATE
-    public static boolean updateATM(int[] bills, String address, String city) throws SQLException {
+
+    public static void updateATM(int[] bills, String address, String city) throws SQLException {
         try {
             // For updates, we will enclose them in a Transaction to ensure
             // the DB ACID properties
@@ -324,6 +319,7 @@ public class JDBCPostgresSQL {
             for (int i = 0; i < bills.length; i++) {
                 preparedStatement.setInt(i + 1, bills[i]);
             }
+
             preparedStatement.setString(5, address);
             preparedStatement.setString(6, city);
             // PreparedStatement.executeUpdate() is used for any queries that somehow change
@@ -336,17 +332,14 @@ public class JDBCPostgresSQL {
             if (tuplesAffected > 0) {
                 connection.commit();
                 System.out.println("Successfully updated ATM UPDATE");
-                return true;
             } else {
                 connection.rollback();
                 System.out.println("Failed to update ATM UPDATE");
-                return false;
             }
         } catch (SQLException sqlException) {
             System.err.println("Error while trying to update the ATM");
             sqlException.printStackTrace();
             connection.rollback(); // If something went wrong...
-            return false;
         } finally { // No matter what, reset it to true
             try {
                 connection.setAutoCommit(true);
@@ -360,7 +353,7 @@ public class JDBCPostgresSQL {
     public static void updateAccounts(int originAccount, int amountToTransfer) {
         updateAccounts(originAccount, -1, amountToTransfer);
     }
-    // This method will handle: employee's transactions between 2 accounts and client transactions
+    // This method will handle: employee's transactions between 2 accounts and client transactions as well as withdraws
     public static void updateAccounts(int originAccount, int destinationAccount, int amountToTransfer) {
         try {
             // Envelope the UPDATE in a Transaction
@@ -383,6 +376,7 @@ public class JDBCPostgresSQL {
 
             ogPreparedStatement.setInt(1, amountToTransfer);
             ogPreparedStatement.setInt(2, originAccount);
+
             if (destinationAccount != -1) {
                 // System.out.println("Doing a two way transaction...");
                 destPreparedStatement = connection.prepareStatement(destinationPreparedStatementSQL);
@@ -487,7 +481,7 @@ public class JDBCPostgresSQL {
         return false;
     }
 
-    public static boolean updatePIN(String DNI, String pin) {
+    public static void updatePIN(String DNI, String pin) {
         try {
             connection.setAutoCommit(false);
 
@@ -506,22 +500,19 @@ public class JDBCPostgresSQL {
             if (tuplesAffected > 0) {
                 connection.commit();
                 System.out.println("PIN change operation was successful");
-                return true;
             } else {
                 connection.rollback();
                 System.out.println("Error while trying to change the PIN");
-                return false;
             }
         } catch (SQLException sqlException) {
             try {
-                System.err.println("Error while trying to change the PIN in PostgresSQL");
+                System.err.println("Error while trying to change the PIN in PostgreSQL" +
+                        "");
                 sqlException.printStackTrace();
                 connection.rollback();
-                return false;
             } catch (SQLException sqlException2) {
                 System.err.println("Error during rollback");
                 sqlException2.printStackTrace();
-                return false;
             }
         } finally {
             try {
@@ -536,7 +527,7 @@ public class JDBCPostgresSQL {
     public static void insertUser(String DNI, String name, String pin, Rol rol) {
         try {
             String preparedStatementSQL = "";
-
+            // Maybe consider a default here? Although it could only be a client or employee. Hmm..
             switch (rol) {
                 case C -> preparedStatementSQL =
                         "INSERT INTO clientes " +
@@ -552,7 +543,7 @@ public class JDBCPostgresSQL {
             preparedStatement.setString(3, pin);
             preparedStatement.setString(4, rol.toString());
 
-            tuplesAffected = 0; // Clears any data that may have been previously stored inside
+            tuplesAffected = 0;
             tuplesAffected = preparedStatement.executeUpdate();
             if (tuplesAffected > 0) {
                 System.out.println("----------------------------------------");
@@ -564,7 +555,8 @@ public class JDBCPostgresSQL {
                 preparedStatement.close(); // Frees up resources
 
                 // Automatically creates the account
-                // The ID is automatically generated by PostgresSQL and the balance is set to default 0
+                // The ID is automatically generated by PostgreSQL
+                // and the balance is set to default 0
                 insertAccount(DNI);
 
             } else {
@@ -572,7 +564,8 @@ public class JDBCPostgresSQL {
                 preparedStatement.close(); // Frees up resources
             }
         } catch (SQLException sqlException) {
-            System.err.println("Error inserting user from PostgresSQL");
+            System.err.println("Error inserting user from PostgreSQL" +
+                    "");
             sqlException.printStackTrace();
         }
     }
@@ -606,7 +599,8 @@ public class JDBCPostgresSQL {
             }
         } catch (SQLException sqlException) {
             try {
-                System.err.println("Error deleting user from PostgresSQL");
+                System.err.println("Error deleting user from PostgreSQL" +
+                        "");
                 connection.rollback();
                 sqlException.printStackTrace();
             } catch (SQLException sqlException2) {
@@ -639,7 +633,8 @@ public class JDBCPostgresSQL {
                 System.out.println("Error. Could not add the account to the database.");
             }
         } catch (SQLException sqlException) {
-            System.err.println("Error inserting account from PostgresSQL");
+            System.err.println("Error inserting account from PostgreSQL" +
+                    "");
             sqlException.printStackTrace();
         }
     }
@@ -668,7 +663,8 @@ public class JDBCPostgresSQL {
             }
         } catch (SQLException sqlException) {
             try {
-                System.err.println("Error deleting account from PostgresSQL");
+                System.err.println("Error deleting account from PostgreSQL
+                ");
                 sqlException.printStackTrace();
                 connection.rollback();
             } catch (SQLException sqlException2) {
@@ -683,7 +679,7 @@ public class JDBCPostgresSQL {
             }
         }
     }*/
-
+    // Instead of using a preparedStatement (see above), we use a Stored Procedure in PostgreSQL
     public static void deleteAccount(String DNI, int account) {
         try {
             connection.setAutoCommit(false);
@@ -705,7 +701,8 @@ public class JDBCPostgresSQL {
             }
         } catch (SQLException sqlException) {
             try {
-                System.err.println("Error deleting account using the stored procedure from PostgresSQL");
+                System.err.println("Error deleting account using the stored procedure from PostgreSQL" +
+                        "");
                 sqlException.printStackTrace();
                 connection.rollback();
             } catch (SQLException sqlException2) {
@@ -720,7 +717,7 @@ public class JDBCPostgresSQL {
             }
         }
     }
-
+    // To use a transaction outside the class
     public static Connection getConnection() {
         return connection;
     }

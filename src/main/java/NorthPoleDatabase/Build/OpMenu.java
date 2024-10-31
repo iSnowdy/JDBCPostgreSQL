@@ -1,15 +1,13 @@
 package NorthPoleDatabase.Build;
 
-import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.SQLOutput;
 
 public class OpMenu {
     // Basic information that is passed down from the Login Menu
     private final String DNI;
     private String pin;
     private Rol rol;
-    // Name of the user
+
     private final String name;
     // Objects for the current user
     private Client userClient;
@@ -33,15 +31,13 @@ public class OpMenu {
         do {
             validATM = printATMs();
             if (!validATM) {
-                System.out.println("In order to continue, you must choose a valid ATM");
+                System.out.println("In order to continue, you MUST choose a valid ATM");
             }
         } while (!validATM);
-
-
-
         promptUser();
     }
-
+    // Main method to, depending on the role of the user, one menu or the other will be printed
+    // and a valid choice will be taken
     private void promptUser() {
         printMainMenu();
         try {
@@ -156,11 +152,13 @@ public class OpMenu {
                     promptUser();
                 }
                 case 10 -> {
+                    // Exit. Disconnect the JDBC Driver and 0 as correct exit code
                     System.out.println("Goodbye " + this.name + "!");
-                    JDBCPostgresSQL.disconnect();
+                    JDBCPostgreSQL.disconnect();
                     System.exit(0); // Correct finalization
                 }
             }
+            // Catches any ExitException thrown from within the methods and brings the user back to the main menu
         } catch (ExitException exitException) {
             System.out.println("Welcome back to the Operation Menu...");
             promptUser();
@@ -204,10 +202,11 @@ public class OpMenu {
                 }
                 case 7 -> {
                     System.out.println("Goodbye " + this.name + "!");
-                    JDBCPostgresSQL.disconnect();
+                    JDBCPostgreSQL.disconnect();
                     System.exit(0); // Correct finalization
                 }
             }
+            // Catches any ExitException thrown from within the methods and brings the user back to the main menu
         } catch (ExitException exitException) {
             System.out.println("Welcome back to the Operation Menu...");
             promptUser();
@@ -223,7 +222,7 @@ public class OpMenu {
 
             System.out.println();
             do {
-                var resultSet = JDBCPostgresSQL.getAllATM();
+                var resultSet = JDBCPostgreSQL.getAllATM();
                 resultSet.previous();
                 System.out.println("----------------- ATM COLLECTION -----------------");
                 System.out.println("Please choose the ATM you wish to work with");
@@ -255,13 +254,13 @@ public class OpMenu {
         }
         return false;
     }
-
+    // Validates that the given ATM ID exists
     private boolean validateATMChoice(int choice) throws ExitException {
         if (choice == -1) {
             throw new ExitException("User chose to exit the program");
         }
 
-        var resultSet = JDBCPostgresSQL.getATM(choice);
+        var resultSet = JDBCPostgreSQL.getATM(choice);
 
         if (resultSet == null) {
             System.out.println("Invalid ATM. Please try again");
@@ -280,7 +279,8 @@ public class OpMenu {
             }
         }
     }
-
+    // If the user chooses to, they can change the working ATM. Therefore, we need to UPDATE
+    // that information with setters
     private void addATMInformation(String addressATM, String cityATM) {
         switch (this.rol) {
             case C -> {

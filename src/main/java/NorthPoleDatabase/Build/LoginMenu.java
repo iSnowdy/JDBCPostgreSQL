@@ -19,14 +19,14 @@ public class LoginMenu {
         String DNI;
         String pin;
         // Keeps asking for the client's DNI and pin until a ResultSet
-        // is returned (until it is found)
+        // is returned (until it is found or 3 mistakes)
         int counter = 3;
         while (counter > 0) {
             System.out.println(menu);
             DNI = promptDNI();
             pin = promptPIN();
 
-            ResultSet resultSet = JDBCPostgresSQL.getPerson(DNI, pin);
+            ResultSet resultSet = JDBCPostgreSQL.getPerson(DNI, pin);
 
             try {
                 if (resultSet != null && resultSet.next()) {
@@ -63,7 +63,6 @@ public class LoginMenu {
         System.out.print("DNI: ");
         return ScannerCreator.nextLine();
     }
-
     private String promptPIN() {
         System.out.print("PIN: ");
         return ScannerCreator.nextLine();
